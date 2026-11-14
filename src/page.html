@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Block Wars</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Jacquard+24&family=Pixelify+Sans:wght@400;600;700&family=Silkscreen:wght@400;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  /* Plan: a full-bleed voxel world. Every piece of interface is cut from Bayeux-tapestry cloth:
+     linen ground, ink outlines, diagonal-bar borders in the tapestry's wool colours. */
+  --linen:#e6dabd; --ink:#1b2130; --russet:#a5432b; --ochre:#c8952c; --woad:#2c5870; --olive:#5c6a33;
+  --friend:#62f07e; --foe:#ff5a45; --pane:rgba(27,33,48,.84);
+  --display:"Jacquard 24","Old English Text MT","UnifrakturCook",fantasy;
+  --body:"Pixelify Sans","Lucida Console","Courier New",monospace;
+  --num:"Jacquard 24","Old English Text MT",Georgia,serif;
+  --label:"Silkscreen","Pixelify Sans","Lucida Console",monospace;
+  --bars:repeating-linear-gradient(118deg,var(--russet) 0 5px,transparent 5px 24px,var(--woad) 24px 29px,transparent 29px 48px,var(--ochre) 48px 53px,transparent 53px 72px);
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0;background:var(--ink);color:var(--linen);overflow:hidden;font-family:var(--body)}
+#stage{position:relative;width:100%;height:100%;overflow:hidden;user-select:none;-webkit-user-select:none;touch-action:none;background:var(--ink)}
+#view{position:absolute;inset:0;width:100%;height:100%;display:block;outline:none}
+[hidden]{display:none !important}
+button{font-family:var(--body)}
+
+/* cloth: the tapestry strip used for dialogue and cards */
+.cloth{position:absolute;background-color:var(--linen);color:var(--ink);border:3px solid var(--ink);
+  background-image:repeating-linear-gradient(0deg,rgba(27,33,48,.05) 0 1px,transparent 1px 3px),repeating-linear-gradient(90deg,rgba(27,33,48,.04) 0 1px,transparent 1px 3px)}
+.cloth::before,.cloth::after{content:"";position:absolute;left:0;right:0;height:12px;background:var(--bars)}
+.cloth::before{top:0;border-bottom:2px solid var(--ink)}
+.cloth::after{bottom:0;border-top:2px solid var(--ink)}
+
+#place{position:absolute;left:clamp(16px,4vw,48px);top:clamp(14px,3vh,34px);color:var(--linen);text-shadow:3px 3px 0 var(--ink);pointer-events:none}
+#place h1{margin:0;font:400 clamp(54px,9vw,116px)/.88 var(--display)}
+#place p{margin:.55em 0 0;font:600 clamp(11px,1.35vw,16px)/1 var(--body);letter-spacing:.24em;text-transform:uppercase}
+
+#dialogue{left:0;right:0;bottom:0;border-width:3px 0 0;padding:32px clamp(16px,6vw,84px) 34px;display:grid;grid-template-columns:1fr auto;gap:12px 44px;align-items:center}
+.speaker{grid-column:1/-1;font:700 13px/1 var(--body);letter-spacing:.22em;text-transform:uppercase;color:var(--russet)}
+#line{margin:0;font:600 clamp(21px,3.1vw,36px)/1.2 var(--body);min-height:1.2em;text-wrap:balance}
+.choices{display:flex;gap:18px}
+.choice{font:700 clamp(18px,2.3vw,27px)/1 var(--body);letter-spacing:.08em;text-transform:uppercase;padding:.62em 1.5em;color:var(--linen);background:var(--woad);border:3px solid var(--ink);box-shadow:5px 5px 0 var(--ink);cursor:pointer;transition:transform .08s,box-shadow .08s}
+.choice.no{background:var(--russet)}
+.choice:hover{transform:translate(-2px,-2px);box-shadow:7px 7px 0 var(--ink)}
+.choice:active{transform:translate(3px,3px);box-shadow:2px 2px 0 var(--ink)}
+.choice:focus-visible,.tool:focus-visible{outline:4px solid var(--ochre);outline-offset:3px}
+.choice:disabled{opacity:.45;cursor:default;transform:none;box-shadow:5px 5px 0 var(--ink)}
+
+#hud{position:absolute;inset:0;pointer-events:none}
+.tally{position:absolute;top:12px;left:calc(50% - 44px);transform:translateX(-50%);display:flex;gap:8px}
+.side{background:var(--pane);border:2px solid var(--ink);padding:8px 12px 7px;min-width:164px;display:grid;gap:7px}
+.side.english{border-bottom:4px solid var(--friend)}
+.side.normans{border-bottom:4px solid var(--foe)}
+.side .row{display:flex;align-items:baseline;gap:8px;font:700 14px/1 var(--body);letter-spacing:.14em;text-transform:uppercase}
+.side b{margin-left:auto;font:400 27px/.8 var(--num);letter-spacing:.02em}
+.leader{display:flex;gap:8px;align-items:center;font:400 12px/1 var(--body);letter-spacing:.08em}
+.bar{flex:1;height:8px;background:#0b0e15;border:1px solid #000}
+.bar i{display:block;height:100%;width:100%}
+.english .bar i{background:var(--friend)}
+.normans .bar i{background:var(--foe)}
+.me{position:absolute;left:14px;bottom:14px;background:var(--pane);border:2px solid var(--ink);padding:10px 12px;display:grid;gap:7px}
+.me .label{font:700 12px/1 var(--body);letter-spacing:.2em;text-transform:uppercase}
+.pips{display:flex;gap:3px}
+.pips i{width:15px;height:15px;background:#0b0e15;border:1px solid #000}
+.pips i.on{background:var(--friend)}
+.pips.low i.on{background:var(--foe)}
+.felled{font:400 13px/1 var(--body);letter-spacing:.1em}
+.felled b{font:400 20px/.7 var(--num);margin-left:4px}
+#hint{position:absolute;left:50%;bottom:16px;transform:translateX(-50%);max-width:calc(100% - 420px);background:var(--pane);border:2px solid var(--ink);padding:8px 14px;font:400 14px/1.7 var(--body);letter-spacing:.03em;text-align:center;transition:opacity .9s}
+#hint kbd{font:700 12px/1 var(--body);background:var(--linen);color:var(--ink);padding:2px 6px;margin:0 1px}
+#toast{position:absolute;left:50%;top:24%;transform:translateX(-50%);background:var(--pane);border:2px solid var(--ink);padding:9px 16px;font:600 15px/1.3 var(--body);text-align:center;opacity:0;transition:opacity .3s;pointer-events:none;max-width:calc(100% - 32px)}
+
+#caption{position:absolute;left:16px;right:16px;bottom:15%;text-align:center;color:var(--linen);text-shadow:3px 3px 0 var(--ink);pointer-events:none;opacity:0;transition:opacity .35s}
+#caption h2{margin:0;font:400 clamp(44px,7.4vw,98px)/.92 var(--display);text-wrap:balance}
+#caption p{display:inline-block;margin:.7em 0 0;padding:5px 12px 6px;background:var(--pane);font:600 clamp(12px,1.5vw,17px)/1.3 var(--body);letter-spacing:.2em;text-transform:uppercase;text-shadow:none}
+#caption p:empty{display:none}
+#caption.low{bottom:11%}
+#caption.charge{bottom:38%}
+#caption.charge h2{font-size:clamp(84px,15vw,210px);color:var(--ochre);text-shadow:5px 5px 0 var(--ink);animation:pop .35s cubic-bezier(.2,1.6,.4,1)}
+@keyframes pop{from{transform:scale(.55)}to{transform:scale(1)}}
+
+.tools{position:absolute;top:12px;right:12px;display:flex;gap:6px;z-index:25}
+.tool{font:700 12px/1 var(--body);letter-spacing:.1em;text-transform:uppercase;color:var(--linen);background:var(--pane);border:2px solid var(--ink);padding:9px 10px;cursor:pointer}
+.tool:hover{background:var(--woad)}
+
+#card{left:50%;top:50%;transform:translate(-50%,-50%);width:min(620px,calc(100% - 32px));max-height:calc(100% - 32px);overflow:auto;padding:38px clamp(18px,4vw,42px) 42px;text-align:center;z-index:30}
+#card .kicker{font:700 12px/1.4 var(--body);letter-spacing:.22em;text-transform:uppercase;color:var(--russet);min-height:1em}
+#card h2{margin:.1em 0 .2em;font:400 clamp(50px,8vw,88px)/.92 var(--display);text-wrap:balance}
+#card p{margin:.7em auto;font:400 clamp(15px,1.8vw,18px)/1.5 var(--body);max-width:46ch}
+#card .titulus{font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--woad)}
+#card .choices{justify-content:center;flex-wrap:wrap;margin-top:24px}
+
+#select{left:50%;top:50%;transform:translate(-50%,-50%);width:min(640px,calc(100% - 32px));max-height:calc(100% - 32px);overflow:auto;padding:38px clamp(18px,4vw,42px) 44px;text-align:center;z-index:15}
+#select h1{margin:.05em 0 .12em;font:400 clamp(58px,9.4vw,108px)/.88 var(--display);text-wrap:balance}
+.pick{margin:0 0 1.2em;font:700 13px/1 var(--label);letter-spacing:.2em;text-transform:uppercase;color:var(--russet)}
+.purseline{display:flex;gap:8px;justify-content:center;align-items:center;margin:20px 0 0;font:400 15px/1 var(--body)}
+.purseline span{margin-right:14px}
+.ico{display:inline-block;width:22px;height:22px;flex:none;image-rendering:pixelated;background-size:100% 100%;background-repeat:no-repeat;vertical-align:middle}
+.wealth{display:flex;gap:10px;align-items:center}
+.purse{display:flex;gap:6px;align-items:center}
+.purse b,.slot b{font:400 22px/.7 var(--num)}
+.slot{display:flex;gap:5px;align-items:center;padding:3px 6px 3px 4px;color:var(--linen);background:#0b0e15;border:2px solid var(--linen);cursor:pointer;pointer-events:auto}
+.slot kbd{font:700 11px/1 var(--body);background:var(--linen);color:var(--ink);padding:2px 5px}
+.slot.none{opacity:.45;border-color:#58607a}
+.slot:focus-visible{outline:3px solid var(--ochre);outline-offset:2px}
+.purse-big{display:flex;gap:10px;justify-content:center;align-items:baseline;margin:.2em 0 .6em}
+.purse-big .ico{width:34px;height:34px;align-self:center}
+.purse-big b{font:400 54px/.8 var(--num)}
+.purse-big span{font:400 16px/1 var(--body)}
+#card h3{margin:1.1em 0 .5em;font:700 12px/1 var(--label);letter-spacing:.2em;text-transform:uppercase;color:var(--woad)}
+.cells{display:flex;flex-wrap:wrap;gap:10px;justify-content:center}
+.cell{display:flex;gap:10px;align-items:center;padding:8px 12px;border:2px solid var(--ink);background:rgba(27,33,48,.06);font:400 15px/1.3 var(--body);text-align:left}
+.cell .ico{width:32px;height:32px}
+.cell.wide{max-width:100%}
+.cell small{display:block;font-size:13px;opacity:.8}
+.cell b{font:400 22px/.7 var(--num);margin-left:6px}
+.cell.none{opacity:.55}
+.eras{display:grid;gap:16px}
+.era{display:grid;grid-template-columns:auto 1fr;gap:6px 22px;align-items:center;text-align:left;padding:14px 20px 16px;color:var(--linen);background:#5b2a6e;border:3px solid var(--ink);box-shadow:5px 5px 0 var(--ink);cursor:pointer;transition:transform .08s,box-shadow .08s}
+.era.late{background:var(--woad)}
+.era:hover{transform:translate(-2px,-2px);box-shadow:7px 7px 0 var(--ink)}
+.era:active{transform:translate(3px,3px);box-shadow:2px 2px 0 var(--ink)}
+.era:focus-visible{outline:4px solid var(--ochre);outline-offset:3px}
+.era .year{font:400 clamp(34px,5.6vw,54px)/.9 var(--num);min-width:3.3em}
+.era .what{font:400 15px/1.35 var(--body)}
+.era .what b{display:block;font:700 clamp(19px,2.6vw,24px)/1.2 var(--body);letter-spacing:.08em;text-transform:uppercase}
+
+/* Carthage wears Punic purple and a mosaic border, with carved capitals in place of blackletter */
+#stage[data-level="carthage"]{--russet:#9b2226;--woad:#5b2a6e;--ochre:#d9a61c;--display:var(--label);
+  --bars:repeating-linear-gradient(90deg,var(--woad) 0 9px,var(--linen) 9px 12px,var(--ochre) 12px 21px,var(--linen) 21px 24px,var(--russet) 24px 33px,var(--linen) 33px 36px)}
+#stage[data-level="carthage"] #caption h2,#stage[data-level="carthage"] #card h2,#stage[data-level="carthage"] #interlude h2{font-weight:700;text-transform:uppercase;letter-spacing:.02em;font-size:clamp(26px,4.1vw,50px);line-height:1.08}
+.side.wide{min-width:300px}
+.side.wide .leader{font-size:13px;line-height:1.25}
+
+#fade{position:absolute;inset:0;background:#0c0f17;opacity:0;pointer-events:none;z-index:20;display:grid;place-items:center;text-align:center;transition:opacity 1s linear}
+#interlude h2{margin:0;font:400 clamp(64px,12vw,150px)/.9 var(--display);color:var(--linen)}
+#interlude p{margin:.7em 0 0;font:600 clamp(12px,1.6vw,18px)/1 var(--body);letter-spacing:.3em;text-transform:uppercase;color:var(--ochre)}
+#fatal{position:absolute;inset:0;display:grid;place-items:center;padding:24px;text-align:center;background:var(--ink);color:var(--linen);font:600 18px/1.5 var(--body);z-index:50}
+
+#touch{position:absolute;inset:0;pointer-events:none}
+#joy{position:absolute;left:18px;bottom:96px;width:132px;height:132px;background:rgba(230,218,189,.14);border:2px solid rgba(230,218,189,.55);pointer-events:auto;touch-action:none}
+#knob{position:absolute;left:50%;top:50%;width:52px;height:52px;margin:-26px 0 0 -26px;background:rgba(230,218,189,.8);border:2px solid var(--ink)}
+.tbtn{position:absolute;width:96px;height:96px;font:700 15px/1 var(--body);letter-spacing:.08em;text-transform:uppercase;color:var(--ink);border:3px solid var(--ink);box-shadow:4px 4px 0 var(--ink);pointer-events:auto;touch-action:none}
+#tHit{right:18px;bottom:28px;background:var(--ochre)}
+#tBlock{right:126px;bottom:28px;background:var(--linen)}
+#tJump{right:18px;bottom:136px;background:var(--friend)}
+.tbtn.down{transform:translate(3px,3px);box-shadow:1px 1px 0 var(--ink)}
+
+.speaker,#place p,.choice,.side .row,.me .label,#caption p,.tool,#card .kicker,#card .titulus,#interlude p,.tbtn,.era .what b{font-family:var(--label);letter-spacing:.05em}
+.side .row b{font-family:var(--num)}
+.choice{font-size:clamp(15px,1.9vw,21px);letter-spacing:.04em}
+
+@media (max-width:1240px){
+  .tally{top:54px;left:50%}
+}
+@media (max-width:900px){
+  #hint{max-width:calc(100% - 32px);bottom:auto;top:128px}
+}
+@media (max-width:640px){
+  #place{top:58px}
+  #dialogue{grid-template-columns:1fr}
+  .choice{flex:1}
+  .side,.side.wide{min-width:0;padding:6px 8px}
+  .era{grid-template-columns:1fr}
+  .side .row{font-size:12px}
+}
+@media (prefers-reduced-motion:reduce){
+  #caption.charge h2{animation:none}
+  .choice{transition:none}
+}
+</style>
+</head>
+<body>
+<div id="stage">
+  <canvas id="view" tabindex="0" aria-label="Game view"></canvas>
+
+  <div id="select" class="cloth" hidden>
+    <h1>Block Wars</h1>
+    <p class="pick">Choose your battle</p>
+    <div class="eras">
+      <button class="era" id="eraCarthage" type="button"><span class="year">146 BC</span><span class="what"><b>Carthage</b>Storm the city with Scipio's legions</span></button>
+      <button class="era late" id="eraHastings" type="button"><span class="year">1066</span><span class="what"><b>Hastings</b>Stand with King Harold against the Normans</span></button>
+    </div>
+    <p class="purseline"><i class="ico" data-ico="coin"></i><span id="selCoins">0 coins</span><i class="ico" data-ico="bread"></i><span id="selBread">0 loaves</span></p>
+  </div>
+
+  <div id="place" hidden>
+    <h1>Winchester</h1>
+    <p>Anno Domini 1066 &middot; Wessex</p>
+  </div>
+
+  <div id="dialogue" class="cloth" hidden>
+    <div class="speaker">Anglo-Saxon soldier</div>
+    <p id="line">Will you fight for Harold and save England?</p>
+    <div class="choices">
+      <button class="choice yes" id="btnYes" type="button">Yes</button>
+      <button class="choice no" id="btnNo" type="button">No</button>
+    </div>
+  </div>
+
+  <div id="hud" hidden>
+    <div class="tally" id="tallyC" hidden>
+      <div class="side english wide">
+        <div class="row"><span id="cStage">The harbour</span><b id="cNum">1/7</b></div>
+        <div class="leader"><span id="cGoal">Follow the road to the siege camp</span></div>
+      </div>
+      <div class="side normans">
+        <div class="row"><span>Defenders</span><b id="cFoes">0</b></div>
+        <div class="leader" id="cBoss" hidden><span>Hasdrubal</span><span class="bar"><i id="cBossHp"></i></span></div>
+      </div>
+    </div>
+    <div class="tally" id="tallyH">
+      <div class="side english">
+        <div class="row"><span>English</span><b id="nSax">0</b></div>
+        <div class="leader"><span>Harold</span><span class="bar"><i id="hpHarold"></i></span></div>
+      </div>
+      <div class="side normans">
+        <div class="row"><span>Normans</span><b id="nNor">0</b></div>
+        <div class="leader"><span>William</span><span class="bar"><i id="hpWilliam"></i></span></div>
+      </div>
+    </div>
+    <div class="me">
+      <div class="label">Health</div>
+      <div class="pips" id="pips"></div>
+      <div class="felled">Felled <b id="kills">0</b></div>
+      <div class="wealth">
+        <span class="purse" title="Your purse"><i class="ico" data-ico="coin"></i><b id="coins">0</b></span>
+        <button class="slot none" id="slotBread" type="button" title="Eat a loaf of bread"><i class="ico" data-ico="bread"></i><b id="nBread">0</b><kbd>1</kbd></button>
+      </div>
+    </div>
+    <div id="hint"></div>
+    <div id="toast"></div>
+  </div>
+
+  <div id="caption"><h2 id="capTitle"></h2><p id="capSub"></p></div>
+
+  <div id="touch" hidden>
+    <div id="joy"><div id="knob"></div></div>
+    <button class="tbtn" id="tBlock" type="button">Block</button>
+    <button class="tbtn" id="tHit" type="button">Hit</button>
+    <button class="tbtn" id="tJump" type="button">Jump</button>
+  </div>
+
+  <div class="tools">
+    <button class="tool" id="btnLevels" type="button" hidden>Battles</button>
+    <button class="tool" id="btnPause" type="button" hidden>Pause</button>
+    <button class="tool" id="btnPack" type="button">Pack</button>
+    <button class="tool" id="btnSound" type="button">Sound on</button>
+    <button class="tool" id="btnFull" type="button">Full screen</button>
+  </div>
+
+  <div id="fade">
+    <div id="interlude" hidden>
+      <h2 id="interTitle">Hastings</h2>
+      <p id="interSub">14 October 1066</p>
+    </div>
+  </div>
+
+  <div id="card" class="cloth" hidden>
+    <div class="kicker" id="cardKicker"></div>
+    <h2 id="cardTitle"></h2>
+    <div id="cardBody"></div>
+    <div class="choices" id="cardChoices"></div>
+  </div>
+
+  <div id="fatal" hidden></div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+/*SCRIPT*/
+</script>
+</body>
+</html>
