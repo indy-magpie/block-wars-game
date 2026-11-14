@@ -3,6 +3,8 @@ $('btnYes').addEventListener('click', onYes);
 $('btnNo').addEventListener('click', onNo);
 $('eraCarthage').addEventListener('click', () => chooseLevel('carthage'));
 $('eraHastings').addEventListener('click', () => chooseLevel('hastings'));
+$('eraSogdiana').addEventListener('click', () => chooseLevel('sogdiana'));
+$('prompt').addEventListener('click', () => { Snd.init(); doAct(); });
 $('btnLevels').addEventListener('click', () => { if (!busy) toSelect(); });
 $('btnSound').addEventListener('click', () => { Snd.init(); Snd.setOn(!Snd.on); $('btnSound').textContent = Snd.on ? 'Sound on' : 'Sound off'; });
 $('btnFull').addEventListener('click', () => {
@@ -13,6 +15,7 @@ $('btnPack').addEventListener('click', openPack);
 $('slotBread').addEventListener('click', () => Inv.use('bread'));
 function skipIntro() {
   if (mode === 'battle') { if (battle.phase === 'intro' && battle.introT > .7) beginCharge(); }
+  else if (mode === 'sogdiana') { if (battle.phase === 'intro' && sog.introT > .7) beginSogdiana(); }
   else if (mode === 'carthage') {
     if (battle.phase === 'intro' && carth.introT > .7) beginCarthage();
     else if (battle.phase === 'cut' && carth.cut && carth.cut.t > .6) finishCut();
@@ -20,6 +23,13 @@ function skipIntro() {
 }
 window.addEventListener('keydown', e => {
   const k = KEYMAP[e.code];
+  if (mode === 'sogdiana') {
+    if (battle.phase === 'talk') {      /* answer with the number keys; Enter or E takes the only answer, or the first */
+      const n = /^(Digit|Numpad)[1-4]$/.test(e.code) ? +e.code.slice(-1) - 1 : (e.code === 'Enter' || e.code === 'KeyE' || e.code === 'Space') ? 0 : -1;
+      if (n >= 0 && !e.repeat) { Snd.init(); pickTalk(n); }
+      if (e.code !== 'KeyM') { e.preventDefault(); return; }
+    } else if ((e.code === 'KeyE' || e.code === 'Enter') && !e.repeat && doAct()) { e.preventDefault(); return; }
+  }
   if (inCombat()) {
     if (k) { if (battle.phase !== 'cut') keys[k] = true; e.preventDefault(); }
     if (e.code === 'KeyP' && !e.repeat) setPaused(!paused);
@@ -40,6 +50,7 @@ canvas.addEventListener('mousedown', e => {
   if (!inCombat()) return;
   Snd.init();
   if (battle.phase === 'intro' || battle.phase === 'cut') { skipIntro(); return; }
+  if (battle.phase === 'talk') return;
   if (!input.locked && !battle.over) lock();
   if (e.button === 0) input.mouseHit = true; else if (e.button === 2) input.mouseBlock = true;
   e.preventDefault();

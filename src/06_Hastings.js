@@ -29,7 +29,7 @@ function combatLayers(sc) {
   return { hpBg: hpBg, hpFill: hpFill, fxMesh: fxMesh, dropMesh: dropMesh };
 }
 function useLevel(name) {
-  const B = battle, L = name === 'hastings' ? hast : carth;
+  const B = battle, L = name === 'hastings' ? hast : name === 'sogdiana' ? sog : carth;
   B.level = name; B.scene = L.scene; B.army = L.army; B.trees = L.trees; B.rects = L.rects; B.gates = L.gates; B.ground = L.ground;
   B.rules = L.rules; B.hpBg = L.hpBg; B.hpFill = L.hpFill; B.clouds = L.clouds || null; B.leash = L.leash; fx.mesh = L.fxMesh; B.dropMesh = L.dropMesh;
   stage.setAttribute('data-level', name);

@@ -75,6 +75,6 @@ function beginCharge() {
   B.phase = 'fight'; B.t = 0; B.harold.raise = 1; B.william.raise = 1;
   setCaption('Charge!', '', 'charge'); sfx.roar();
   setTimeout(() => { if (battle.phase === 'fight' && $('caption').className === 'charge') setCaption('', ''); }, 1300);
-  $('hud').hidden = false; $('tallyH').hidden = false; $('tallyC').hidden = true; $('btnPause').hidden = false; refreshTouchUi();
+  $('hud').hidden = false; $('tallyH').hidden = false; $('tallyC').hidden = true; $('tallyS').hidden = true; $('btnPause').hidden = false; refreshTouchUi();
   showHint(); followCam(0, true); B.rules.hud(true);
 }

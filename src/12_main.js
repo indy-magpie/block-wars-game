@@ -11,19 +11,25 @@ function frame(now) {
     stepCarthFx(dt, clock);
     camera.position.set(-36 + Math.sin(a * .11) * 7, 31, 186 + Math.cos(a * .09) * 9); camera.lookAt(8, 3, 300);
   } else if (inCombat()) {
-    const B = battle, C = carth, punic = mode === 'carthage';
+    const B = battle, C = carth, punic = mode === 'carthage', sogd = mode === 'sogdiana';
     if (!paused) {
       if (B.phase === 'wait') {
         for (const u of B.units) if (u.alive) animate(u, dt, clock);
-        if (!punic) { camera.position.set(-43, 16, -12); camera.lookAt(8, 1, 0); }
+        if (sogd) { for (const c of sog.civ.units) if (!c.hidden) animate(c, dt, clock); if (sog.fresh) { camera.position.set(-40, 34, 22); camera.lookAt(0, 4, 96); } else followCam(dt, true); }
+        else if (!punic) { camera.position.set(-43, 16, -12); camera.lookAt(8, 1, 0); }
         else if (C.si === 0) { camera.position.set(-27, 13, -27); camera.lookAt(3, 1, 8); }
         else followCam(dt, true);
       }
-      else if (B.phase === 'intro') { if (punic) stepCarthIntro(dt); else stepIntro(dt); }
+      else if (B.phase === 'intro') { if (sogd) stepSogIntro(dt); else if (punic) stepCarthIntro(dt); else stepIntro(dt); }
+      else if (B.phase === 'talk') {      /* the world stands still while he talks */
+        for (const u of B.units) if (u.alive) { u.vx = u.vz = 0; animate(u, dt, clock); }
+        for (const c of sog.civ.units) if (!c.hidden) { c.vx = c.vz = 0; animate(c, dt, clock); }
+        followCam(dt, false);
+      }
       else if (B.phase === 'cut') stepCut(dt);
       else if (B.phase === 'fight') {
         stepFight(dt); stepDrops(dt); followCam(dt, false);
-        if (B.over && !B.cardShown && B.endT > (punic && B.result === 'victory' ? 3.2 : 1.9)) { B.cardShown = true; showEndCard(); }
+        if (B.over && !B.cardShown && B.endT > ((punic || sogd) && B.result === 'victory' ? 3.2 : 1.9)) { B.cardShown = true; showEndCard(); }
         if (B.edgeT > 0) B.edgeT -= dt;
         const show = B.edgeT > .3 && !B.over;
         if (show !== toastOn || (show && B.toast !== toastText)) { toastOn = show; toastText = B.toast; const tt = $('toast'); if (show) tt.textContent = B.toast; tt.style.opacity = show ? 1 : 0; }
@@ -34,10 +40,15 @@ function frame(now) {
         stepCarthFx(dt, clock);
         if (C.bannerT > 0) { C.bannerT -= dt; if (C.bannerT <= 0 && $('caption').className === 'low') setCaption('', ''); }
       }
+      if (sogd) {
+        stepSogFx(dt, clock);
+        if (sog.bannerT > 0) { sog.bannerT -= dt; if (sog.bannerT <= 0 && $('caption').className === 'low') setCaption('', ''); }
+      }
       if (B.clouds) { B.clouds.position.x += dt * .7; if (B.clouds.position.x > 60) B.clouds.position.x = -60; }
     }
     B.army.write(); writeHpBars(); writeDrops(clock);
     if (punic) { C.civ.write(); writeArrows(); }
+    if (sogd) sog.civ.write();
   }
   if (scene) renderer.render(scene, camera);
   /* drop the resolution on slow machines */
@@ -49,11 +60,12 @@ function frame(now) {
 }
 
 function start(data) {
-  buildMenu(); buildBattle(); buildCarthage(); resize();
+  buildMenu(); buildBattle(); buildCarthage(); buildSogdiana(); resize();
   Save.loadLocal(); hudPack(); Save.connect();
   const m = data && data.mode;
   if (m === 'battle') { enterMenu(true); busy = true; $('fade').style.opacity = 1; toBattle(); }
   else if (m === 'carthage') { enterSelect(); busy = true; $('fade').style.opacity = 1; toCarthage(clamp(data.stage | 0, 0, 6)); }
+  else if (m === 'sogdiana') { enterSelect(); busy = true; $('fade').style.opacity = 1; toSogdiana(true); }
   else if (m === 'menu') enterMenu(true);
   else enterSelect();
   requestAnimationFrame(frame);
@@ -62,9 +74,9 @@ function start(data) {
 window.__hastings = {
   info: () => ({ tris: renderer.info.render.triangles, calls: renderer.info.render.calls }),
   save: Save, inv: Inv, drops: drops,
-  battle: battle, carth: carth, tune: TUNE, stat: STAT, tiers: C_TIER, ctune: C_TUNE, stages: STAGES, cam: cam, step: stepFight,
+  keys: keys, input: input, battle: battle, carth: carth, sog: sog, stune: S_TUNE, act: () => doAct(), pick: i => pickTalk(i), alarm: z => alarm(z), pathTo: pathTo, looks: looks, begin: fresh => { sogPopulate(fresh); mode = 'sogdiana'; scene = sog.scene; beginSogdiana(); }, tune: TUNE, stat: STAT, tiers: C_TIER, ctune: C_TUNE, stages: STAGES, cam: cam, step: stepFight,
   state: () => ({ mode: mode, phase: battle.phase, over: battle.over, result: battle.result, busy: busy, stage: carth.si, done: carth.done }),
-  skip() { if (mode === 'carthage') { if (battle.phase === 'intro') beginCarthage(); else if (battle.phase === 'cut') finishCut(); } else beginCharge(); },
+  skip() { if (mode === 'sogdiana') { if (battle.phase === 'intro') beginSogdiana(); } else if (mode === 'carthage') { if (battle.phase === 'intro') beginCarthage(); else if (battle.phase === 'cut') finishCut(); } else beginCharge(); },
   warp(i, w) { populate(i, w); beginCarthage(); },
   simulate(n, how) {
     const out = [];

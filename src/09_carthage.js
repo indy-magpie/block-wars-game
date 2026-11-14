@@ -540,7 +540,7 @@ function stepCarthIntro(dt) {
 function beginCarthage() {
   const B = battle, C = carth; if (B.phase === 'fight') return;
   B.phase = 'fight';
-  $('hud').hidden = false; $('tallyH').hidden = true; $('tallyC').hidden = false; $('btnPause').hidden = false; refreshTouchUi();
+  $('hud').hidden = false; $('tallyH').hidden = true; $('tallyC').hidden = false; $('tallyS').hidden = true; $('btnPause').hidden = false; refreshTouchUi();
   showHint(); followCam(0, true);
   announce(STAGES[C.si].name, 'Checkpoint ' + NUMW[C.si] + ' of seven', 3.2);
   if (C.si === 2 && !C.warned) { C.warned = true; B.edgeT = 6; B.toast = 'Arrows! Hold block to raise your shield.'; }

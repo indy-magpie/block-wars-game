@@ -3,13 +3,13 @@
 const ITEMS = {
   bread: { name: 'Loaf of bread', desc: 'Eat it to win back four blocks of health. You can carry five.', max: 5, heal: 40 }
 };
-const MONEY = { hastings: ['silver penny', 'silver pennies'], carthage: ['denarius', 'denarii'], any: ['coin', 'coins'] };
+const MONEY = { hastings: ['silver penny', 'silver pennies'], carthage: ['denarius', 'denarii'], sogdiana: ['drachma', 'drachmas'], any: ['coin', 'coins'] };
 const KIT = {
   hastings: [['axe', 'Battle axe'], ['shieldR', 'Round shield'], ['helm', 'Iron helmet']],
   carthage: [['gladius', 'Gladius'], ['scutum', 'Scutum'], ['helmR', 'Bronze helmet']]
 };
 /* pixel icons, eight by eight */
-const ICON_PAL = { Y: '#f2c230', y: '#b9861c', w: '#fff3b0', B: '#a5672c', b: '#d9a45c', d: '#6e4118', S: '#d6dbe2', s: '#8a919c', W: '#7a5632', R: '#a82a22', r: '#6e1712', P: '#c0281e', G: '#c9973a', g: '#8a6420' };
+const ICON_PAL = { T: '#1f7f84', t: '#145a5e', U: '#2f6fb0', u: '#1f4f84', Y: '#f2c230', y: '#b9861c', w: '#fff3b0', B: '#a5672c', b: '#d9a45c', d: '#6e4118', S: '#d6dbe2', s: '#8a919c', W: '#7a5632', R: '#a82a22', r: '#6e1712', P: '#c0281e', G: '#c9973a', g: '#8a6420' };
 const ICON_MAP = {
   coin: ['..yyyy..', '.yYYYYy.', 'yYwYYYYy', 'yYwYYYYy', 'yYYYYYYy', 'yYYYYyYy', '.yYYYYy.', '..yyyy..'],
   bread: ['........', '..BBBB..', '.BbbbbB.', 'BbdbdbbB', 'BbbbbbbB', 'BBBBBBBB', '.dddddd.', '........'],
@@ -18,6 +18,10 @@ const ICON_MAP = {
   shieldR: ['..RRRR..', '.RRrrRR.', 'RRrRRrRR', 'RrRssRrR', 'RrRssRrR', 'RRrRRrRR', '.RRrrRR.', '..RRRR..'],
   scutum: ['.RRRRRR.', '.RRYYRR.', '.RRYYRR.', '.RYYYYR.', '.RYYYYR.', '.RRYYRR.', '.RRYYRR.', '.RRRRRR.'],
   helm: ['...ss...', '..sSSs..', '.sSSSSs.', '.sSSSSs.', 'ssssssss', '.s.ss.s.', '...ss...', '........'],
+  knife: ['......S.', '.....SS.', '....SS..', '...SS...', '..YS....', '.WY.....', 'W.......', '........'],
+  robe: ['..TTTT..', '.TTYYTT.', 'TTTYYTTT', 'T.TTTT.T', '..TTTT..', '..TtTT..', '..TTtT..', '..TTTT..'],
+  jar: ['..uUUu..', '...UU...', '..UUUU..', '.UUUUUU.', '.UuUUUU.', '.UuUUUU.', '..UUUU..', '...uu...'],
+  arrow: ['.....SSS', '......SS', '.....W.S', '....W...', '...W....', 'R.W.....', '.R......', 'R.R.....'],
   helmR: ['...PP...', '..PPPP..', '..gGGg..', '.gGGGGg.', '.gGGGGg.', 'gggggggg', '.g....g.', '.g....g.']
 };
 const ICON_URL = {};
@@ -142,10 +146,11 @@ function openPack() {
   const fight = inCombat() && !battle.over, lvl = inCombat() ? battle.level : mode === 'menu' ? 'hastings' : 'any';
   const m = MONEY[lvl] || MONEY.any, c = Inv.coins(), p = battle.player;
   let html = '<div class="purse-big">' + icon('coin') + '<b>' + c + '</b><span>' + (c === 1 ? m[0] : m[1]) + '</span></div>';
-  if (inCombat() && KIT[lvl]) html += '<h3>Kit for this battle</h3><div class="cells">' + KIT[lvl].map(k => '<div class="cell">' + icon(k[0]) + '<span>' + k[1] + '</span></div>').join('') + '</div>';
+  const kit = lvl === 'sogdiana' ? sogKit() : KIT[lvl];
+  if (inCombat() && kit) html += '<h3>' + (lvl === 'sogdiana' ? 'What you carry' : 'Kit for this battle') + '</h3><div class="cells">' + kit.map(k => '<div class="cell">' + icon(k[0]) + '<span>' + k[1] + '</span></div>').join('') + '</div>';
   html += '<h3>Pack</h3><div class="cells">';
   for (const id in ITEMS) { const n = Inv.count(id), it = ITEMS[id]; html += '<div class="cell wide' + (n ? '' : ' none') + '">' + icon(id) + '<span>' + it.name + ' <b>&times;' + n + '</b><small>' + it.desc + '</small></span></div>'; }
-  html += '</div><p class="titulus">Beaten enemies drop coins, and now and then a loaf.</p>';
+  html += '</div><p class="titulus">' + (lvl === 'sogdiana' ? 'Silver buys disguises, secrets and bread. Search old pots for more.' : 'Beaten enemies drop coins, and now and then a loaf.') + '</p>';
   const btns = [['Close', 'yes', closePack]];
   if (fight && Inv.count('bread') && p && p.alive && p.hp < p.maxHp - 1) btns.unshift(['Eat a loaf', 'no', () => { closePack(); Inv.use('bread'); }]);
   if (fight) paused = true;

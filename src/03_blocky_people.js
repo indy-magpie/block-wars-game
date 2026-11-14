@@ -35,6 +35,8 @@ const PART_BOXES = {
   scutum: [[0, 0, 0, .66, 1.12, .07, W], [0, .5, .037, .6, .05, .01, [.7, .7, .7]], [0, -.5, .037, .6, .05, .01, [.7, .7, .7]]],
   scutumBoss: [[0, 0, .06, .2, .24, .08, GOLD], [0, 0, .045, .06, .96, .02, GOLD], [0, .3, .045, .42, .05, .02, GOLD], [0, -.3, .045, .42, .05, .02, GOLD]],
   gladius: [[0, -.6, 0, .07, .16, .07, [.35, .22, .12]], [0, -.7, 0, .2, .05, .1, GOLD], [0, -.97, 0, .1, .5, .035, STEEL], [0, -1.25, 0, .06, .08, .03, STEEL]],
+  /* Sogdiana */
+  knife: [[0, -.6, 0, .07, .14, .07, [.3, .2, .12]], [0, -.69, 0, .17, .04, .09, GOLD], [0, -.85, 0, .085, .28, .03, STEEL], [0, -1.01, 0, .05, .06, .025, STEEL]],
   bow: [[0, 0, 0, .05, .5, .06, WOOD], [0, .36, -.06, .05, .3, .06, WOOD], [0, -.36, -.06, .05, .3, .06, WOOD], [0, .56, -.14, .05, .14, .06, WOOD], [0, -.56, -.14, .05, .14, .06, WOOD], [0, 0, -.17, .015, 1.2, .015, [.9, .9, .85]]]
 };
 const BONE = { torso: 0, head: 1, armR: 2, armL: 3, legR: 4, legL: 5, shield: 6 };
@@ -110,7 +112,7 @@ class Army {
       raise: 0, cheer: false, flee: false, idleT: rand(0, 20), strafe: 0, strafeT: 0,
       lastHitT: -99, hx: 0, hz: 0, hyaw: 0, kills: 0, fixArmR: null,
       coolR: null, hurt: null, hold: false, aggro: 14, sq: 0, stage: -1, slot: 0, npc: false, fixed: false, archer: false, bow: false, shotT: rand(.5, 3), drawT: 0,
-      stab: false, panic: false, surrenders: false, civ: false,
+      stab: false, panic: false, surrenders: false, civ: false, sneak: false, sneakAmt: 0, noBlock: false,
       pose: { armR: -.3, armL: -.3, legR: 0, legL: 0, head: 0, headY: 0, sx: .51, sy: 1, sz: .27, sry: .55 },
       parts: []
     }, o);
@@ -163,7 +165,7 @@ class Army {
       setBone(4, -.125, .75, 0, P.legR, 0, 0);
       setBone(5, .125, .75, 0, P.legL, 0, 0);
       setBone(6, P.sx, P.sy, P.sz, 0, P.sry, 0);
-      for (const p of u.parts) p.b.mesh.setMatrixAt(p.i, BONES[p.bone]);
+      for (const p of u.parts) p.b.mesh.setMatrixAt(p.i, p.off ? ZERO : BONES[p.bone]);
       const fade = u.alive ? 1 : clamp(1 - u.deathT / .5, 0, 1) * u.shrink;
       _m.makeScale(1.35 * s, 1, 1.35 * s); _m.setPosition(u.x, u.gy + .035, u.z); this.shadow.setMatrixAt(i, _m);
       if (this.glow) { const g = 2.15 * u.scale * fade; _m.makeScale(g, 1, g); _m.setPosition(u.x, u.gy + .05, u.z); this.glow.setMatrixAt(i, _m); }
@@ -194,7 +196,7 @@ function animate(u, dt, time) {
   if (u.fixArmR !== null) armR = u.fixArmR;
   if (u.raise > .001) armR = lerp(armR, u.stab ? -2.9 : -1.95, u.raise);
   let hop = 0;
-  const wantBlock = (u.blocking || u.blockT > 0 || (u.wall && u.attackT < 0)) && !u.cheer && !u.flee;
+  const wantBlock = (u.blocking || u.blockT > 0 || (u.wall && u.attackT < 0)) && !u.cheer && !u.flee && !u.noBlock;
   u.blockAmt = damp(u.blockAmt, wantBlock ? 1 : 0, 20, dt);
   const b = u.blockAmt;
   P.armL = lerp(-.3 + sw * .12, -.85, b);
@@ -208,10 +210,13 @@ function animate(u, dt, time) {
   if (u.panic) { const c = time * 9 + u.idleT * 5; armR = -2.75 + Math.sin(c) * .25; P.armL = -2.75 - Math.sin(c) * .25; }
   P.armR = armR;
   P.headY = Math.sin(time * .5 + u.idleT) * .22 * (1 - u.moveAmt) * (u.target ? 0 : 1);
+  u.sneakAmt = damp(u.sneakAmt, u.sneak ? 1 : 0, 12, dt);
+  const k = u.sneakAmt;                                                /* creeping: bent forward, arms in, a little lower */
+  if (k > .01) { P.armR = lerp(P.armR, u.attackT >= 0 ? P.armR : -.75, k); P.armL = lerp(P.armL, -.75, k); }
   const lean = u.stagger > 0 ? -.2 : (u.attackT >= u.windup && u.attackT < u.strikeEnd) ? .15 : sp > 3 ? .07 : 0;
-  u.tilt = damp(u.tilt, lean, 14, dt);
+  u.tilt = damp(u.tilt, Math.max(lean, .34 * k), 14, dt);
   if (u.jy > .05) { P.legR = -.6; P.legL = .45; }                     /* legs tucked in the air */
-  u.y = u.gy + u.jy + Math.abs(Math.sin(u.walkPhase)) * .05 * u.moveAmt * (u.jy > 0 ? 0 : 1) + hop;
+  u.y = u.gy + u.jy + Math.abs(Math.sin(u.walkPhase)) * .05 * u.moveAmt * (u.jy > 0 ? 0 : 1) + hop - .13 * k;
 }
 
 /* looks */

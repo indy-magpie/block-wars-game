@@ -1,5 +1,5 @@
 /* ================= fighting engine (shared by every level) ================= */
-function isBlocking(t) { return (t.isPlayer && !battle.autopilot) ? t.blocking : t.blockT > 0; }
+function isBlocking(t) { return t.noBlock ? false : (t.isPlayer && !battle.autopilot) ? t.blocking : t.blockT > 0; }
 function beginAttack(u) {
   u.attackT = 0; u.hitDone = false;
   const v = loud(u); if (v > .05) sfx.swing(v);
@@ -53,6 +53,7 @@ function resolveHit(a) {
   }
   let dmg = rand(a.dmg[0], a.dmg[1]);
   if (t.isPlayer) dmg *= (a.hurt !== null ? a.hurt : TUNE.hurtPlayer);
+  if (a.isPlayer && B.rules.strike) dmg = B.rules.strike(a, t, dmg);      /* a level may have its own rule, such as a blow from behind */
   if (a.isPlayer && a.jy > .25) { dmg *= TUNE.jumpHit; t.kx += dx / d * 2.5; t.kz += dz / d * 2.5; burst(mx, my, mz, 6, 0xffffff, 3.6, .32, .1); }      /* a blow struck in mid-air lands harder */
   a.lastHitT = B.t;
   const kb = t.wall || t.kind === 'king' ? 1.5 : 4.2;
@@ -136,7 +137,7 @@ function stepAI(u, dt) {
         let want = 0;
         if (d > u.range * .92) want = u.speed; else if (d < .95) want = -1.5;
         let ax = dx / d, az = dz / d;
-        if (want > 0 && B.gates.length) { const r = route(u, t.x, t.z), rx = r[0] - u.x, rz = r[1] - u.z, rd = hyp(rx, rz) || 1e-4; ax = rx / rd; az = rz / rd; }
+        if (want > 0 && (R.steer || B.gates.length)) { const r = R.steer ? R.steer(u, t.x, t.z) : route(u, t.x, t.z), rx = r[0] - u.x, rz = r[1] - u.z, rd = hyp(rx, rz) || 1e-4; ax = rx / rd; az = rz / rd; }
         mvx = ax * want * slow; mvz = az * want * slow;
         if (want === 0) {
           u.strafeT -= dt; if (u.strafeT <= 0) { u.strafeT = rand(.8, 2); u.strafe = pick([-1, 0, 0, 1]) * .9; }
@@ -193,7 +194,8 @@ function stepPlayer(p, dt) {
   const fx_ = Math.sin(cam.yaw), fz_ = Math.cos(cam.yaw);
   const mx = fx_ * iy - fz_ * ix, mz = fz_ * iy + fx_ * ix;
   const wantHit = keys.hit || input.mouseHit || input.touchHit, wantBlock = keys.block || input.mouseBlock || input.touchBlock;
-  p.blocking = wantBlock && p.attackT < 0 && p.stagger <= 0;
+  p.sneak = p.noBlock && (wantBlock || !!(B.rules.duck && B.rules.duck(p)));      /* with no shield the block key creeps instead */
+  p.blocking = wantBlock && !p.noBlock && p.attackT < 0 && p.stagger <= 0;
   if ((keys.jump || input.touchJump) && p.jy <= 0 && p.jv === 0 && p.stagger <= 0) { p.jv = TUNE.jump; sfx.jump(); }
   if (wantHit && p.attackT < 0 && p.cool <= 0 && p.stagger <= 0) {
     p.blocking = false;
@@ -217,7 +219,7 @@ function stepPlayer(p, dt) {
   }
   if (face === null && len > .1) face = Math.atan2(mx, mz);
   if (face !== null) p.yaw = turnTo(p.yaw, face, 14 * dt);
-  const sp = p.speed * (p.blocking ? .45 : 1) * (p.attackT >= 0 ? .6 : 1) * (p.stagger > 0 ? .25 : 1);
+  const sp = p.speed * (p.blocking ? .45 : 1) * (p.sneak ? .5 : 1) * (p.attackT >= 0 ? .6 : 1) * (p.stagger > 0 ? .25 : 1);
   p.vx = damp(p.vx, mx * sp, 14, dt); p.vz = damp(p.vz, mz * sp, 14, dt);
 }
 
@@ -232,6 +234,7 @@ function collide(u) {
   for (let i = 0; i < Rc.length; i++) {
     const r = Rc[i];
     if (r.plat && u.isPlayer && u.gy + u.jy >= r.h - .2) continue;      /* the player is above it: he can stand on it */
+    if (r.duck && u.isPlayer && u.sneak) continue;                       /* a low opening he can crawl through */
     if (u.z < r.z0 - rad || u.z > r.z1 + rad || u.x < r.x0 - rad || u.x > r.x1 + rad) continue;
     const cx = clamp(u.x, r.x0, r.x1), cz = clamp(u.z, r.z0, r.z1), dx = u.x - cx, dz = u.z - cz, d2 = dx * dx + dz * dz;
     if (d2 > 1e-8) {
@@ -362,7 +365,9 @@ function setCaption(title, sub, cls) {
 let hintTimer = 0;
 function showHint() {
   const h = $('hint');
-  h.innerHTML = touchMode ? 'Left pad moves &middot; drag the screen to look &middot; <kbd>Hit</kbd>, <kbd>Block</kbd> and <kbd>Jump</kbd> on the right'
+  if (battle.level === 'sogdiana') h.innerHTML = touchMode ? 'Left pad moves &middot; drag the screen to look &middot; hold <kbd>Sneak</kbd> to creep &middot; tap the prompt to talk'
+    : '<kbd>W A S D</kbd> move &middot; <kbd>Shift</kbd> sneak &middot; <kbd>E</kbd> talk &middot; <kbd>Click</kbd> knife &middot; <kbd>Space</kbd> jump &middot; <kbd>1</kbd> bread';
+  else h.innerHTML = touchMode ? 'Left pad moves &middot; drag the screen to look &middot; <kbd>Hit</kbd>, <kbd>Block</kbd> and <kbd>Jump</kbd> on the right'
     : '<kbd>W A S D</kbd> move &middot; <kbd>Space</kbd> jump &middot; <kbd>Click</kbd> or <kbd>F</kbd> hit &middot; <kbd>Right-click</kbd> or <kbd>Shift</kbd> block &middot; <kbd>1</kbd> eat bread &middot; <kbd>I</kbd> pack';
   h.style.opacity = 1; clearTimeout(hintTimer); hintTimer = setTimeout(() => { h.style.opacity = 0; }, 16000);
 }
