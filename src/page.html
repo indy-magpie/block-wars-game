@@ -118,7 +118,7 @@ button{font-family:var(--body)}
 .cell small{display:block;font-size:13px;opacity:.8}
 .cell b{font:400 22px/.7 var(--num);margin-left:6px}
 .cell.none{opacity:.55}
-.eras{display:grid;gap:16px}
+.eras{display:grid;gap:16px;max-height:min(58vh,520px);overflow-y:auto;padding:2px 8px 8px 2px}
 .era{display:grid;grid-template-columns:auto 1fr;gap:6px 22px;align-items:center;text-align:left;padding:14px 20px 16px;color:var(--linen);background:#5b2a6e;border:3px solid var(--ink);box-shadow:5px 5px 0 var(--ink);cursor:pointer;transition:transform .08s,box-shadow .08s}
 .era.late{background:var(--woad)}
 .era.early{background:#1f6f73}
@@ -212,11 +212,7 @@ button{font-family:var(--body)}
   <div id="select" class="cloth" hidden>
     <h1>Block Wars</h1>
     <p class="pick">Choose your battle</p>
-    <div class="eras">
-      <button class="era early" id="eraSogdiana" type="button"><span class="year">328 BC</span><span class="what"><b>Sogdiana</b>Slip into the fort of Gabae and capture the rebel Spitamenes</span></button>
-      <button class="era" id="eraCarthage" type="button"><span class="year">146 BC</span><span class="what"><b>Carthage</b>Storm the city with Scipio's legions</span></button>
-      <button class="era late" id="eraHastings" type="button"><span class="year">1066</span><span class="what"><b>Hastings</b>Stand with King Harold against the Normans</span></button>
-    </div>
+    <div class="eras" id="eras"></div>
     <p class="purseline"><i class="ico" data-ico="coin"></i><span id="selCoins">0 coins</span><i class="ico" data-ico="bread"></i><span id="selBread">0 loaves</span></p>
   </div>
 
@@ -256,6 +252,7 @@ button{font-family:var(--body)}
         <div class="leader"><span id="sAlert">All quiet</span><span class="bar"><i id="sMeter"></i></span></div>
       </div>
     </div>
+    <div class="tally" id="tallyL" hidden></div>
     <div class="tally" id="tallyH">
       <div class="side english">
         <div class="row"><span>English</span><b id="nSax">0</b></div>

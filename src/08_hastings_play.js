@@ -78,3 +78,13 @@ function beginCharge() {
   $('hud').hidden = false; $('tallyH').hidden = false; $('tallyC').hidden = true; $('tallyS').hidden = true; $('btnPause').hidden = false; refreshTouchUi();
   showHint(); followCam(0, true); B.rules.hud(true);
 }
+
+/* Hastings is the oldest level: its world lives in 06_Hastings.js and its screens (Winchester, the battle, the end card) in 10_flow.js */
+defineLevel({
+  id: 'hastings', order: 1066, year: '1066', title: 'Hastings', blurb: 'Stand with King Harold against the Normans', colour: 'var(--woad)',
+  world: hast, build() { buildMenu(); buildBattle(); }, tally: 'tallyH', lock: false,
+  money: ['silver penny', 'silver pennies'], kit: [['axe', 'Battle axe'], ['shieldR', 'Round shield'], ['helm', 'Iron helmet']],
+  enter: async () => { enterMenu(false); await fade(0, 900); busy = false; }, resume() { enterMenu(true); toBattle(); },
+  skip() { if (battle.phase === 'intro' && battle.introT > .7) beginCharge(); },
+  frame: { wait() { camera.position.set(-43, 16, -12); camera.lookAt(8, 1, 0); }, intro: stepIntro }
+});

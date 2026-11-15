@@ -365,8 +365,8 @@ function setCaption(title, sub, cls) {
 let hintTimer = 0;
 function showHint() {
   const h = $('hint');
-  if (battle.level === 'sogdiana') h.innerHTML = touchMode ? 'Left pad moves &middot; drag the screen to look &middot; hold <kbd>Sneak</kbd> to creep &middot; tap the prompt to talk'
-    : '<kbd>W A S D</kbd> move &middot; <kbd>Shift</kbd> sneak &middot; <kbd>E</kbd> talk &middot; <kbd>Click</kbd> knife &middot; <kbd>Space</kbd> jump &middot; <kbd>1</kbd> bread';
+  const lv = LEVELS[battle.level];
+  if (lv && lv.hint) h.innerHTML = lv.hint(touchMode);
   else h.innerHTML = touchMode ? 'Left pad moves &middot; drag the screen to look &middot; <kbd>Hit</kbd>, <kbd>Block</kbd> and <kbd>Jump</kbd> on the right'
     : '<kbd>W A S D</kbd> move &middot; <kbd>Space</kbd> jump &middot; <kbd>Click</kbd> or <kbd>F</kbd> hit &middot; <kbd>Right-click</kbd> or <kbd>Shift</kbd> block &middot; <kbd>1</kbd> eat bread &middot; <kbd>I</kbd> pack';
   h.style.opacity = 1; clearTimeout(hintTimer); hintTimer = setTimeout(() => { h.style.opacity = 0; }, 16000);

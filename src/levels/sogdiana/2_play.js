@@ -109,7 +109,6 @@ function ignores(g) {
 }
 
 /* ---------- alarms ---------- */
-function tell(text, secs) { if (battle.sim) return; battle.toast = text; battle.edgeT = secs || 4; }
 function alarm(zone, why) {
   const B = battle, S = sog, Z = S.zones[zone], p = B.player; if (!Z || B.over) return;
   if (S.log && Z.state !== 'alarm') S.log.push([zone, why && why.x !== undefined ? 'seen from ' + why.x.toFixed(1) + ',' + why.z.toFixed(1) + ' sus ' + why.sus.toFixed(2) + ' d ' + why.seeD.toFixed(1) + ' R ' + why.seeR : why || '', +p.x.toFixed(1), +p.z.toFixed(1), +B.t.toFixed(1)]);
@@ -223,30 +222,6 @@ function angerCamp() {
   alarm('camp');
 }
 
-/* ---------- talking: a line, and up to four answers ---------- */
-function openTalk(who, text, choices) {
-  const B = battle, S = sog;
-  B.phase = 'talk'; for (const k in keys) keys[k] = false; input.mouseHit = input.mouseBlock = input.touchHit = input.touchBlock = false;
-  S.talk = choices; S.act = null; $('prompt').hidden = true; $('hint').style.opacity = 0; $('touch').hidden = true; $('toast').style.opacity = 0; toastOn = false;
-  $('talkWho').textContent = who;
-  const box = $('talkChoices'); box.innerHTML = '';
-  choices.forEach((c, i) => {
-    const el = document.createElement('button'); el.type = 'button'; el.className = 'choice' + (c[2] ? ' no' : ''); el.id = 'talkBtn' + i; el.disabled = !!c[3];
-    const kb = document.createElement('kbd'); kb.textContent = i + 1; el.appendChild(kb); el.appendChild(document.createTextNode(c[0]));
-    el.addEventListener('click', () => pickTalk(i)); box.appendChild(el);
-  });
-  $('talk').hidden = false; unlock(); typeLine(text, null, $('talkLine')); sfx.ui();
-}
-function pickTalk(i) {
-  const S = sog, c = S.talk && S.talk[i]; if (!c || c[3] || battle.phase !== 'talk') return;
-  S.talk = null; c[1]();
-  if (!S.talk) closeTalk();
-}
-function closeTalk() {
-  const B = battle; sog.talk = null; $('talk').hidden = true;
-  if (B.phase === 'talk') B.phase = 'fight';
-  refreshTouchUi(); if (!B.over) lock(); sogRules.hud(true);
-}
 const bye = () => {};
 function setCp(x, z, yaw) { sog.cp = [x, z, yaw || 0]; Save.flush(); }
 function pay(n) { Inv.addCoins(-n); sfx.coin(); }
@@ -386,22 +361,6 @@ function sogActs() {
   add(S.boss, 2.1, () => canSeize() ? 'Seize Spitamenes' : null, seize);
   S_STASH.forEach((q, i) => add(q, 2, () => F.stash[i] ? null : 'Search the pot', () => takeStash(i)));
 }
-function stepActs() {
-  const S = sog, p = battle.player; let best = null, bd = 1e9, text = null;
-  for (const a of S.acts) {
-    const q = a.pos, x = q.x !== undefined ? q.x : q[0], z = q.x !== undefined ? q.z : q[1], d = hyp(x - p.x, z - p.z);
-    if (d > a.r || d >= bd) continue;
-    const l = a.label(); if (!l) continue;
-    best = a; bd = d; text = l;
-  }
-  if (best !== S.act || text !== S.actText) { S.act = best; S.actText = text; $('prompt').hidden = !best; if (best) { $('promptText').textContent = text; $('promptKey').textContent = touchMode ? 'Tap' : 'E'; } }
-}
-function doAct() {
-  const S = sog, B = battle;
-  if (mode !== 'sogdiana' || B.phase !== 'fight' || B.over || paused || !S.act || !B.player.alive) return false;
-  const a = S.act; S.act = null; S.actText = null; $('prompt').hidden = true; a.go(); return true;
-}
-
 /* ---------- where he is and what he should do next ---------- */
 function sogPlace(x, z) {
   if (x > -22 && x < 22 && z > 98 && z < 138) return x > -12 && x < 12 && z > 124 ? 'hall' : 'court';
@@ -515,7 +474,7 @@ const sogRules = {
   },
   end(result) {
     const S = sog;
-    S.beacon.visible = false; S.act = null; $('prompt').hidden = true;
+    S.beacon.visible = false; battle.act = null; $('prompt').hidden = true;
     if (result === 'victory') {
       for (const g of S.guards) if (g.alive) { g.hold = true; g.mode = 'done'; g.target = null; g.sus = 0; g.npc = true; g.blockT = 0; g.attackT = -1; }
       for (const k in S.zones) S.zones[k].state = 'calm';
@@ -606,3 +565,55 @@ function sogKit() {
   if (F.token) k.push(['arrow', 'Massagetae arrow']);
   return k;
 }
+
+/* ---- Sogdiana ---- */
+async function toSogdiana(fresh) {
+  hideUi();
+  if (fresh) interlude('Sogdiana', 'The year 328 before Christ'); else interlude('Gabae', 'Try again from where you got to');
+  sogPopulate(fresh); mode = 'sogdiana'; scene = sog.scene; camera.fov = 55; camera.updateProjectionMatrix();
+  await wait(fresh ? 1700 : 1000);
+  if (fresh) { sog.introT = 0; battle.phase = 'intro'; setCaption('Gabae', 'The hunt for Spitamenes'); } else beginSogdiana();
+  await fade(0, 1000);
+  $('interlude').hidden = true;
+  busy = false;
+}
+async function sogAgain(fresh) {
+  if (busy) return; busy = true; sfx.ui(); lock(); $('card').hidden = true;
+  await fade(1, 700); await toSogdiana(fresh);
+}
+function sogEndCard() {
+  const B = battle;
+    const S = sog, F = S.flags, other = ['Other battles', 'no', toSelect];
+    setCaption('', '');
+    if (B.result === 'victory') {
+      const L = [
+        'Into Gabae: ' + ({ robe: 'dressed as a trader', bribe: 'with silver for the gate guard', wall: 'over the broken wall', force: 'past the gate guards by force' }[F.gate] || 'unseen'),
+        'The potter: ' + ({ paid: 'paid for his secrets', favour: 'helped, for the price of a jar', threat: 'threatened, and he called the guards' }[F.potter] || 'never asked'),
+        'The Massagetae: ' + ({ paid: 'paid to ride away', talked: 'talked into standing aside', angry: 'made into enemies' }[F.chief] || 'left alone'),
+        'Into the citadel: ' + ({ password: 'through the gate, with the password', channel: 'through the water channel', force: 'through the gate, by force' }[F.way] || 'somehow'),
+        'Spitamenes: ' + ({ token: 'gave himself up when he saw the arrow', seize: 'seized from behind without a sound', fight: 'beaten in a fight, knife against sword' }[F.end] || 'taken')];
+      showCard('Sogdiana, 328 BC', 'Spitamenes is taken',
+        '<p>The rebel is your prisoner, and the war in Sogdiana is over.</p><ul class="deeds">' + L.map(s => '<li>' + s + '</li>').join('') + '</ul>' +
+        '<p class="titulus">Alarms raised: ' + F.alarms + ' &middot; Times caught: ' + S.deaths + '</p>' +
+        '<p class="note">What really happened: that winter the Massagetae turned on Spitamenes themselves, and the war ended. His daughter Apama later became a queen.</p>',
+        [['Play again', 'yes', () => sogAgain(true)], other]);
+    } else showCard('Sogdiana, 328 BC', 'Caught!', '<p>The guards have you. But a Companion does not give up. Slip away, and try again from where you last got to.</p><p class="titulus">Everything you have bought and learnt is still yours</p>',
+      [['Try again', 'yes', () => sogAgain(false)], other]);
+}
+
+defineLevel({
+  id: 'sogdiana', order: -328, year: '328 BC', title: 'Sogdiana', blurb: 'Slip into the fort of Gabae and capture the rebel Spitamenes', colour: '#1f6f73',
+  world: sog, build: buildSogdiana, tally: 'tallyS', blockLabel: 'Sneak',
+  money: ['drachma', 'drachmas'], kit: sogKit, kitTitle: 'What you carry', packTip: 'Silver buys disguises, secrets and bread. Search old pots for more.',
+  hint: touch => touch ? 'Left pad moves &middot; drag the screen to look &middot; hold <kbd>Sneak</kbd> to creep &middot; tap the prompt to talk'
+    : '<kbd>W A S D</kbd> move &middot; <kbd>Shift</kbd> sneak &middot; <kbd>E</kbd> talk &middot; <kbd>Click</kbd> knife &middot; <kbd>Space</kbd> jump &middot; <kbd>1</kbd> bread',
+  enter: () => toSogdiana(true), resume: () => toSogdiana(true), endCard: sogEndCard, endDelay: r => r === 'victory' ? 3.2 : 1.9,
+  skip() { if (battle.phase === 'intro' && sog.introT > .7) beginSogdiana(); },
+  frame: {
+    wait(dt, clock) { for (const c of sog.civ.units) if (!c.hidden) animate(c, dt, clock); if (sog.fresh) { camera.position.set(-40, 34, 22); camera.lookAt(0, 4, 96); } else followCam(dt, true); },
+    intro: stepSogIntro,
+    idle(dt, clock) { for (const c of sog.civ.units) if (!c.hidden) { c.vx = c.vz = 0; animate(c, dt, clock); } },
+    fx(dt, clock) { stepSogFx(dt, clock); if (sog.bannerT > 0) { sog.bannerT -= dt; if (sog.bannerT <= 0 && $('caption').className === 'low') setCaption('', ''); } },
+    write() { sog.civ.write(); }
+  }
+});

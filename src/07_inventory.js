@@ -3,11 +3,7 @@
 const ITEMS = {
   bread: { name: 'Loaf of bread', desc: 'Eat it to win back four blocks of health. You can carry five.', max: 5, heal: 40 }
 };
-const MONEY = { hastings: ['silver penny', 'silver pennies'], carthage: ['denarius', 'denarii'], sogdiana: ['drachma', 'drachmas'], any: ['coin', 'coins'] };
-const KIT = {
-  hastings: [['axe', 'Battle axe'], ['shieldR', 'Round shield'], ['helm', 'Iron helmet']],
-  carthage: [['gladius', 'Gladius'], ['scutum', 'Scutum'], ['helmR', 'Bronze helmet']]
-};
+const MONEY = { any: ['coin', 'coins'] };      /* each level names its own money and kit when it registers */
 /* pixel icons, eight by eight */
 const ICON_PAL = { T: '#1f7f84', t: '#145a5e', U: '#2f6fb0', u: '#1f4f84', Y: '#f2c230', y: '#b9861c', w: '#fff3b0', B: '#a5672c', b: '#d9a45c', d: '#6e4118', S: '#d6dbe2', s: '#8a919c', W: '#7a5632', R: '#a82a22', r: '#6e1712', P: '#c0281e', G: '#c9973a', g: '#8a6420' };
 const ICON_MAP = {
@@ -144,13 +140,13 @@ function openPack() {
   if (packOpen) { closePack(); return; }
   if (busy || !$('card').hidden || (inCombat() && battle.phase !== 'fight')) return;
   const fight = inCombat() && !battle.over, lvl = inCombat() ? battle.level : mode === 'menu' ? 'hastings' : 'any';
-  const m = MONEY[lvl] || MONEY.any, c = Inv.coins(), p = battle.player;
+  const lv = LEVELS[lvl], m = (lv && lv.money) || MONEY.any, c = Inv.coins(), p = battle.player;
   let html = '<div class="purse-big">' + icon('coin') + '<b>' + c + '</b><span>' + (c === 1 ? m[0] : m[1]) + '</span></div>';
-  const kit = lvl === 'sogdiana' ? sogKit() : KIT[lvl];
-  if (inCombat() && kit) html += '<h3>' + (lvl === 'sogdiana' ? 'What you carry' : 'Kit for this battle') + '</h3><div class="cells">' + kit.map(k => '<div class="cell">' + icon(k[0]) + '<span>' + k[1] + '</span></div>').join('') + '</div>';
+  const kit = lv && lv.kit ? (typeof lv.kit === 'function' ? lv.kit() : lv.kit) : null;
+  if (inCombat() && kit) html += '<h3>' + ((lv && lv.kitTitle) || 'Kit for this battle') + '</h3><div class="cells">' + kit.map(k => '<div class="cell">' + icon(k[0]) + '<span>' + k[1] + '</span></div>').join('') + '</div>';
   html += '<h3>Pack</h3><div class="cells">';
   for (const id in ITEMS) { const n = Inv.count(id), it = ITEMS[id]; html += '<div class="cell wide' + (n ? '' : ' none') + '">' + icon(id) + '<span>' + it.name + ' <b>&times;' + n + '</b><small>' + it.desc + '</small></span></div>'; }
-  html += '</div><p class="titulus">' + (lvl === 'sogdiana' ? 'Silver buys disguises, secrets and bread. Search old pots for more.' : 'Beaten enemies drop coins, and now and then a loaf.') + '</p>';
+  html += '</div><p class="titulus">' + ((lv && lv.packTip) || 'Beaten enemies drop coins, and now and then a loaf.') + '</p>';
   const btns = [['Close', 'yes', closePack]];
   if (fight && Inv.count('bread') && p && p.alive && p.hp < p.maxHp - 1) btns.unshift(['Eat a loaf', 'no', () => { closePack(); Inv.use('bread'); }]);
   if (fight) paused = true;

@@ -361,6 +361,6 @@ function sogPopulate(fresh) {
     if (F.chief === 'angry') for (const q of spots) mkGuard(lookRider(), q[0], q[1], q[2], 'camp', { rider: true, hp: S_TUNE.riderHp, dmg: S_TUNE.riderDmg, loot: 3 });
     else { S.chief = mkCiv(LOOK_CHIEF, 54, 79, -PI / 2); for (const q of spots) S.riders.push(mkCiv(lookRider(), q[0], q[1], q[2])); }
   }
-  sogActs();
+  sogActs(); B.acts = S.acts;
   cam.yaw = S.cp[2]; cam.pitch = .55; followCam(0, true);
 }

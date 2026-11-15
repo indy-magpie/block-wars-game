@@ -16,8 +16,8 @@ window.T = {
     }
     H.keys.up = false; H.keys.block = false; H.keys.jump = false; return this.st();
   },
-  act(picks) { const H = this.H; if (!H.act()) return 'no act: ' + (H.sog.actText || 'none'); for (const i of picks || []) { if (H.battle.phase !== 'talk') break; H.pick(i); } return document.getElementById('talk').hidden ? 'done' : 'talk open: ' + document.getElementById('talkLine').textContent; },
-  prompt() { const H = this.H; H.ff = 0; H.step(1 / 30); return H.sog.actText; },
+  act(picks) { const H = this.H; if (!H.act()) return 'no act: ' + (H.battle.actText || 'none'); for (const i of picks || []) { if (H.battle.phase !== 'talk') break; H.pick(i); } return document.getElementById('talk').hidden ? 'done' : 'talk open: ' + document.getElementById('talkLine').textContent; },
+  prompt() { const H = this.H; H.ff = 0; H.step(1 / 30); return H.battle.actText; },
   st() { const H = this.H, B = H.battle, S = H.sog, p = B.player, F = S.flags, z = {}; for (const k in S.zones) if (S.zones[k].state !== 'calm') z[k] = S.zones[k].state;
     return { at: [+p.x.toFixed(1), +p.z.toFixed(1)], hp: Math.round(p.hp), phase: B.phase, over: B.over, res: B.result, place: S.place, zones: z, coins: H.inv.coins(),
       F: Object.keys(F).filter(k => F[k] && typeof F[k] !== 'object').map(k => k + (F[k] === true ? '' : '=' + F[k])).join(' ') }; }

@@ -671,3 +671,44 @@ function stepCarthFx(dt, time) {
     }
   }
 }
+
+/* ---- Carthage ---- */
+async function toCarthage(i, wave) {
+  hideUi();
+  if (i === 0) interlude('Carthage', 'The year 146 before Christ'); else interlude(STAGES[i].name, 'Checkpoint ' + NUMW[i] + ' of seven');
+  populate(i, wave); mode = 'carthage'; scene = carth.scene; camera.fov = 55; camera.updateProjectionMatrix();
+  await wait(i === 0 ? 1700 : 1000);
+  if (i === 0) { carth.introT = 0; battle.phase = 'intro'; setCaption('Carthage', 'The last days of the siege'); } else beginCarthage();
+  await fade(0, 1000);
+  $('interlude').hidden = true;
+  busy = false;
+}
+async function carthAgain(i, wave) {
+  if (busy) return; busy = true; sfx.ui(); lock(); $('card').hidden = true;
+  if (i === 0) { carth.deaths = 0; carth.warned = false; }
+  await fade(1, 700); await toCarthage(i, wave);
+}
+function carthEndCard() {
+  const B = battle, k = B.player.kills;
+    const C = carth, i = C.si, wv = C.wave, other = ['Other battles', 'no', toSelect];
+    if (B.result === 'victory') showCard('The Third Punic War', 'Carthage has fallen',
+      '<p>Hasdrubal lays down his sword and the city belongs to Rome. Scipio will be given the name Africanus. It is said that he wept as he watched Carthage burn.</p><p class="titulus">Foes you felled: ' + k + ' &middot; Times you fell: ' + C.deaths + '</p>',
+      [['Play again', 'yes', () => carthAgain(0)], other]);
+    else showCard('Checkpoint ' + NUMW[i] + ' of seven', 'You have fallen',
+      '<p>The legion holds its ground without you. Rejoin it at ' + STAGES[i].name.toLowerCase() + '.</p><p class="titulus">Foes you felled: ' + k + '</p>',
+      [['Try again', 'yes', () => carthAgain(i, wv)], other]);
+}
+
+defineLevel({
+  id: 'carthage', order: -146, year: '146 BC', title: 'Carthage', blurb: 'Storm the city with Scipio\u2019s legions', colour: '#5b2a6e',
+  world: carth, build: buildCarthage, tally: 'tallyC',
+  money: ['denarius', 'denarii'], kit: [['gladius', 'Gladius'], ['scutum', 'Scutum'], ['helmR', 'Bronze helmet']],
+  enter: async () => { carth.deaths = 0; carth.warned = false; await toCarthage(0); }, resume: d => toCarthage(clamp(d.stage | 0, 0, 6)), endCard: carthEndCard, endDelay: r => r === 'victory' ? 3.2 : 1.9,
+  skip() { if (battle.phase === 'intro' && carth.introT > .7) beginCarthage(); else if (battle.phase === 'cut' && carth.cut && carth.cut.t > .6) finishCut(); },
+  frame: {
+    wait(dt) { if (carth.si === 0) { camera.position.set(-27, 13, -27); camera.lookAt(3, 1, 8); } else followCam(dt, true); },
+    intro: stepCarthIntro, cut: stepCut,
+    fx(dt, clock) { stepCarthFx(dt, clock); if (carth.bannerT > 0) { carth.bannerT -= dt; if (carth.bannerT <= 0 && $('caption').className === 'low') setCaption('', ''); } },
+    write() { carth.civ.write(); writeArrows(); }
+  }
+});

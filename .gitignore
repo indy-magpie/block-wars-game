@@ -3,3 +3,4 @@ test/shots/
 __pycache__/
 *.pyc
 .DS_Store
+index.html
