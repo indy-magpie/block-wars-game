@@ -32,7 +32,7 @@ async def main():
         await g.js(H + ".battle.player.hp = 0; " + H + ".battle.player.alive = false; " + H + ".battle.player.deathT = 0;")
         await g.pg.wait_for_selector('#cardBtn1', timeout=60000); await g.pg.wait_for_timeout(300); await g.pg.click('#cardBtn1')
         await g.until(lambda s: s['mode'] == 'select' and not s['busy'])
-        await g.pg.click('#eraHastings'); await g.until(lambda s: s['mode'] == 'menu' and not s['busy'])
+        await g.pg.click('#eraHastings'); await g.until(lambda s: s['mode'] == 'winchester' and not s['busy'])
         await g.pg.click('#btnYes'); await g.until(lambda s: s['phase'] == 'intro' and not s['busy']); await g.js(H + '.skip()'); await g.pg.wait_for_timeout(400)
         await g.js("() => { const B = " + H + ".battle, p = B.player; p.x = -13; p.z = -6.2; }")
         await g.pg.keyboard.down('KeyW'); await g.pg.keyboard.down('Space'); await g.pg.wait_for_timeout(450); await g.pg.keyboard.up('Space'); await g.pg.keyboard.up('KeyW'); await g.pg.wait_for_timeout(500)

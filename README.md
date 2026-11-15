@@ -38,8 +38,13 @@ test/                    headless play-throughs and balance simulations
 ```
 
 Core parts, in order: boot, helpers, renderer, blocky people (instanced box figures), scenery pieces,
-Winchester, Hastings world, fighting engine, inventory, the level registry and kit, talk-and-use, Hastings
-rules; then every level folder; then flow (screens and cards), events (input) and the main loop.
+Winchester, Hastings world, fighting engine, inventory, the level and screen registries and the kit,
+talk-and-use, Hastings rules and screens; then every level folder; then flow (the select screen and cards),
+events (input) and the main loop.
+
+A screen is a place that is not a level being played: choosing a battle, or Winchester before Hastings. Each
+registers itself with `defineScreen()`, and while it shows, `mode` is its id. While a level is played, `mode`
+is the level's id.
 
 Each level gives the engine a `rules` object and describes itself to the registry. A level's scene is built
 the first time it is chosen. `docs/LEVELS.md` has the details.
@@ -63,6 +68,7 @@ npm install
 pip install playwright
 python3 test/smoke.py <id>  # does a level start cleanly? works for any level
 python3 test/template.py   # the level kit, proved with docs/template/level.js
+python3 test/screens.py    # the select screen, Winchester, Hastings' cards, and a hot reload
 python3 test/cplay.py      # Carthage and Hastings end to end
 python3 test/tweaks2.py    # jump, loot, bread, pack, saving
 python3 test/hsim.py       # Hastings balance, simulated players

@@ -1,6 +1,4 @@
 /* ================= events ================= */
-$('btnYes').addEventListener('click', onYes);
-$('btnNo').addEventListener('click', onNo);
 $('prompt').addEventListener('click', () => { Snd.init(); doAct(); });
 $('btnLevels').addEventListener('click', () => { if (!busy) toSelect(); });
 $('btnSound').addEventListener('click', () => { Snd.init(); Snd.setOn(!Snd.on); $('btnSound').textContent = Snd.on ? 'Sound on' : 'Sound off'; });
@@ -28,9 +26,7 @@ window.addEventListener('keydown', e => {
     if ((e.code === 'Digit1' || e.code === 'KeyH') && !e.repeat) Inv.use('bread');
     if (e.code === 'Tab') e.preventDefault();
     if (!e.repeat) skipIntro();
-  } else if (mode === 'menu' && !busy) {
-    if (e.code === 'KeyY') onYes(); else if (e.code === 'KeyN') onNo();
-  }
+  } else if (SCREENS[mode].key) SCREENS[mode].key(e);      /* a screen may have keys of its own */
   if ((e.code === 'KeyI' || e.code === 'Tab') && !e.repeat) openPack();
   if (e.code === 'Escape' && packOpen) closePack();
   if (e.code === 'KeyM' && !e.repeat) $('btnSound').click();

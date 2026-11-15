@@ -5,12 +5,8 @@ function frame(now) {
   const raw = (now - last) / 1000; last = now;
   const dt = Math.min(.05, Math.max(0, raw));
   clock += dt; Snd.budget = 5;
-  if (mode === 'menu') { stepMenu(dt, clock); menu.army.write(); }
-  else if (mode === 'select') {
-    const a = reduceMotion ? 0 : clock;
-    stepCarthFx(dt, clock);
-    camera.position.set(-36 + Math.sin(a * .11) * 7, 31, 186 + Math.cos(a * .09) * 9); camera.lookAt(8, 3, 300);
-  } else if (inCombat()) {
+  if (!inCombat()) { const scr = SCREENS[mode]; if (scr.frame) scr.frame(dt, clock); }
+  else {
     const B = battle, lv = LEVELS[B.level] || {}, F = lv.frame || {};
     if (!paused) {
       if (B.phase === 'wait') { for (const u of B.units) if (u.alive) animate(u, dt, clock); if (F.wait) F.wait(dt, clock); else followCam(dt, true); }
@@ -50,8 +46,9 @@ function start(data) {
   buildSelect(); resize();
   Save.loadLocal(); hudPack(); Save.connect();
   /* scenes are built the first time they are needed, not all at once */
-  const m = data && data.mode, lv = m === 'battle' ? LEVELS.hastings : LEVELS[m];
-  if (m === 'menu') { ensureBuilt(LEVELS.hastings); enterMenu(true); }
+  /* after a hot reload, go back to where he was; 'menu' and 'battle' are what Winchester and Hastings were called before */
+  const was = { menu: 'winchester', battle: 'hastings' }, m = data && (was[data.mode] || data.mode), scr = SCREENS[m], lv = LEVELS[m];
+  if (scr && scr.resume) scr.resume(data);
   else { enterSelect(); if (lv && lv.resume) { ensureBuilt(lv); busy = true; $('fade').style.opacity = 1; lv.resume(data); } }
   requestAnimationFrame(frame);
 }
@@ -61,7 +58,7 @@ window.__hastings = {
   save: Save, inv: Inv, drops: drops,
   keys: keys, input: input, battle: battle, carth: carth, sog: sog, stune: S_TUNE, act: () => doAct(), pick: i => pickTalk(i), alarm: z => alarm(z), pathTo: pathTo, looks: looks, levels: LEVELS, ensure: id => ensureBuilt(LEVELS[id]), begin: fresh => { ensureBuilt(LEVELS.sogdiana); sogPopulate(fresh); mode = 'sogdiana'; scene = sog.scene; beginSogdiana(); }, tune: TUNE, stat: STAT, tiers: C_TIER, ctune: C_TUNE, stages: STAGES, cam: cam, step: stepFight,
   state: () => ({ mode: mode, phase: battle.phase, over: battle.over, result: battle.result, busy: busy, stage: carth.si, done: carth.done }),
-  skip() { if (mode === 'sogdiana') { if (battle.phase === 'intro') beginSogdiana(); } else if (mode === 'carthage') { if (battle.phase === 'intro') beginCarthage(); else if (battle.phase === 'cut') finishCut(); } else if (mode === 'battle') beginCharge(); else if (battle.phase !== 'fight') beginFight(); },
+  skip() { if (mode === 'sogdiana') { if (battle.phase === 'intro') beginSogdiana(); } else if (mode === 'carthage') { if (battle.phase === 'intro') beginCarthage(); else if (battle.phase === 'cut') finishCut(); } else if (mode === 'hastings') beginCharge(); else if (battle.phase !== 'fight') beginFight(); },
   warp(i, w) { ensureBuilt(LEVELS.carthage); populate(i, w); beginCarthage(); },
   simulate(n, how) {
     const out = []; ensureBuilt(LEVELS.hastings);

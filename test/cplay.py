@@ -33,7 +33,7 @@ async def main():
         await g.pg.wait_for_selector('#card:not([hidden])', timeout=90000); await g.pg.wait_for_timeout(400); await g.shot('c29_victory')
         await g.pg.click('#cardBtn1'); s = await g.until(lambda s: s['mode'] == 'select' and not s['busy']); print('select', s)
         # Hastings still works
-        await g.pg.click('#eraHastings'); s = await g.until(lambda s: s['mode'] == 'menu' and not s['busy']); await g.pg.wait_for_timeout(1500); await g.shot('c30_winchester')
+        await g.pg.click('#eraHastings'); s = await g.until(lambda s: s['mode'] == 'winchester' and not s['busy']); await g.pg.wait_for_timeout(1500); await g.shot('c30_winchester')
         await g.pg.click('#btnYes'); await g.until(lambda s: s['phase'] == 'intro' and not s['busy']); await g.js('window.__hastings.skip()')
         await g.pg.keyboard.down('KeyW'); await g.pg.keyboard.down('Space'); await g.pg.wait_for_timeout(9000); await g.pg.keyboard.up('KeyW'); await g.pg.keyboard.up('Space'); await g.shot('c31_hastings')
         print('hastings', await g.st(), await g.js('() => { const B = window.__hastings.battle; return [B.t, B.sax.filter(u => u.alive).length, B.nor.filter(u => u.alive).length, B.player.kills]; }'))

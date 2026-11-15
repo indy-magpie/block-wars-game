@@ -79,12 +79,70 @@ function beginCharge() {
   showHint(); followCam(0, true); B.rules.hud(true);
 }
 
-/* Hastings is the oldest level: its world lives in 06_Hastings.js and its screens (Winchester, the battle, the end card) in 10_flow.js */
+/* ---- Winchester: a screen of its own before the battle, where a soldier asks the question ---- */
+const HASTINGS_QUESTION = 'Will you fight for Harold and save England?';
+function hastingsChoices(on) { $('btnYes').disabled = !on; $('btnNo').disabled = !on; }
+function enterWinchester(first) {
+  mode = 'winchester'; scene = winchester.scene; battle.phase = 'idle'; hideUi();
+  stage.setAttribute('data-level', 'hastings');
+  $('place').hidden = false; $('dialogue').hidden = false; $('btnLevels').hidden = false;
+  camera.fov = 50; camera.updateProjectionMatrix(); hastingsChoices(true);
+  if (first) { clearInterval(typeTimer); $('line').textContent = HASTINGS_QUESTION; } else typeLine(HASTINGS_QUESTION);
+}
+async function hastingsToBattle() {
+  hideUi(); interlude('Hastings', '14 October 1066');
+  spawnArmies(); mode = 'hastings'; scene = battle.scene; camera.fov = 55; camera.updateProjectionMatrix();
+  await wait(1700);
+  battle.phase = 'intro';
+  await fade(0, 1100);
+  $('interlude').hidden = true;
+  busy = false;
+}
+async function hastingsYes() {
+  if (busy) return; busy = true; Snd.init(); sfx.ui(); lock(); hastingsChoices(false);
+  await fade(1, 900); await hastingsToBattle();
+}
+async function hastingsNo() {
+  if (busy) return; busy = true; Snd.init(); sfx.ui(); hastingsChoices(false);
+  await new Promise(r => typeLine('Then may God defend England.', r));
+  await wait(1300); await fade(1, 900);
+  $('place').hidden = true; $('dialogue').hidden = true; $('btnLevels').hidden = true;
+  showCard('14 October 1066', 'England stands alone',
+    '<p>Without you, the shield wall broke at Hastings. Harold fell, and William of Normandy was crowned King of England on Christmas Day.</p>',
+    [['Return to Winchester', 'yes', hastingsBackToWinchester]], true);
+}
+async function hastingsBackToWinchester() {
+  sfx.ui(); $('card').hidden = true;
+  if (mode === 'hastings') { busy = true; await fade(1, 700); }
+  enterWinchester(); await fade(0, 900); busy = false;
+}
+async function hastingsFightAgain() {
+  if (busy) return; busy = true; sfx.ui(); lock(); $('card').hidden = true;
+  await fade(1, 700); await hastingsToBattle();
+}
+function hastingsEndCard() {
+  const B = battle, tally = '<p class="titulus">Foes you felled: ' + B.player.kills + '</p>';
+  const btns = [['Fight again', 'yes', hastingsFightAgain], ['Return to Winchester', 'no', hastingsBackToWinchester]];
+  if (B.result === 'victory') showCard('14 October 1066', 'Victory', '<p>William has fallen and the Normans break and run. Harold keeps his crown. England is saved, and history is changed.</p>' + tally, btns);
+  else if (B.result === 'harold') showCard('Hic Harold rex interfectus est', 'Harold has fallen', '<p>The shield wall is broken and the King lies dead. William will be crowned on Christmas Day.</p>' + tally, btns);
+  else showCard('14 October 1066', 'You have fallen', '<p>You fought bravely on the field of Hastings, but the battle goes on without you.</p>' + tally, btns);
+}
+$('btnYes').addEventListener('click', hastingsYes);
+$('btnNo').addEventListener('click', hastingsNo);
+defineScreen({
+  id: 'winchester', level: 'hastings',
+  frame(dt, clock) { stepWinchester(dt, clock); winchester.army.write(); },
+  key(e) { if (busy) return; if (e.code === 'KeyY') hastingsYes(); else if (e.code === 'KeyN') hastingsNo(); },
+  resume() { ensureBuilt(LEVELS.hastings); enterWinchester(true); }
+});
+
+/* Hastings is the oldest level: its world is in 06_Hastings.js, Winchester's scene in 05_Winchester.js, and the rest here */
 defineLevel({
   id: 'hastings', order: 1066, year: '1066', title: 'Hastings', blurb: 'Stand with King Harold against the Normans', colour: 'var(--woad)',
-  world: hast, build() { buildMenu(); buildBattle(); }, tally: 'tallyH', lock: false,
+  world: hast, build() { buildWinchester(); buildBattle(); }, tally: 'tallyH', lock: false,
   money: ['silver penny', 'silver pennies'], kit: [['axe', 'Battle axe'], ['shieldR', 'Round shield'], ['helm', 'Iron helmet']],
-  enter: async () => { enterMenu(false); await fade(0, 900); busy = false; }, resume() { enterMenu(true); toBattle(); },
+  enter: async () => { enterWinchester(false); await fade(0, 900); busy = false; }, resume() { enterWinchester(true); hastingsToBattle(); },
+  endCard: hastingsEndCard,
   skip() { if (battle.phase === 'intro' && battle.introT > .7) beginCharge(); },
   frame: { wait() { camera.position.set(-43, 16, -12); camera.lookAt(8, 1, 0); }, intro: stepIntro }
 });

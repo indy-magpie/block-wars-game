@@ -20,7 +20,7 @@ If your folder has more than one file and order matters, number them (`1_world.j
 
 | Field | Needed | What it is |
 | --- | --- | --- |
-| `id` | yes | Short lower-case name. Also the folder name, the `data-level` on the page, and `mode` while it is played. |
+| `id` | yes | Short lower-case name. Also the folder name, the `data-level` on the page, and `mode` while it is played. Not `select` or `winchester`: those are screens. |
 | `order` | yes | The year as a number (BC negative). Sorts the choose-your-battle screen. |
 | `year`, `title`, `blurb`, `colour` | yes | The button on that screen. |
 | `when` | no | Second line of the title card shown while the level loads. |

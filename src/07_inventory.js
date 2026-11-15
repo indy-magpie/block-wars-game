@@ -139,7 +139,7 @@ function closePack() { if (!packOpen) return; packOpen = false; $('card').hidden
 function openPack() {
   if (packOpen) { closePack(); return; }
   if (busy || !$('card').hidden || (inCombat() && battle.phase !== 'fight')) return;
-  const fight = inCombat() && !battle.over, lvl = inCombat() ? battle.level : mode === 'menu' ? 'hastings' : 'any';
+  const fight = inCombat() && !battle.over, lvl = inCombat() ? battle.level : SCREENS[mode].level || 'any';
   const lv = LEVELS[lvl], m = (lv && lv.money) || MONEY.any, c = Inv.coins(), p = battle.player;
   let html = '<div class="purse-big">' + icon('coin') + '<b>' + c + '</b><span>' + (c === 1 ? m[0] : m[1]) + '</span></div>';
   const kit = lv && lv.kit ? (typeof lv.kit === 'function' ? lv.kit() : lv.kit) : null;

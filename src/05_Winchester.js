@@ -1,7 +1,7 @@
 /* ================= Winchester ================= */
-const menu = { scene: null, army: null, asker: null, flame: null, marchers: [] };
-function buildMenu() {
-  const sc = new T.Scene(); menu.scene = sc;
+const winchester = { scene: null, army: null, asker: null, flame: null, marchers: [] };
+function buildWinchester() {
+  const sc = new T.Scene(); winchester.scene = sc;
   sc.background = new T.Color(0xc3d2d6); sc.fog = new T.Fog(0xc3d2d6, 24, 100);
   sc.add(new T.HemisphereLight(0xe2ecf4, 0x6a5f48, .8));
   const sun = new T.DirectionalLight(0xffe2b4, .85); sun.position.set(-6, 7, 5); sc.add(sun);
@@ -49,20 +49,20 @@ function buildMenu() {
   for (let i = 0; i < 26; i++) { const sx = i % 2 ? 1 : -1; tree(L, sx * (14 + rng() * 22), 8 - rng() * 80, 1 + rng() * .5, rng); }
   sc.add(new T.Mesh(buildBoxes(L), MAT_STATIC));
   const fl = new T.Mesh(buildBoxes([[0, .16, 0, .34, .32, .34, [1, .55, .1]], [0, .36, 0, .2, .3, .2, [1, .85, .3]]]), new T.MeshBasicMaterial({ vertexColors: true }));
-  fl.position.set(2.5, 1.09, .9); sc.add(fl); menu.flame = fl;
+  fl.position.set(2.5, 1.09, .9); sc.add(fl); winchester.flame = fl;
 
-  const A = new Army(sc, 16, false); menu.army = A;
-  menu.asker = A.add(Object.assign({}, LOOK_HOUSECARL(0), { weapon: 'spear', x: 0, z: 0, yaw: -.22, fixArmR: -PI / 2 }));
+  const A = new Army(sc, 16, false); winchester.army = A;
+  winchester.asker = A.add(Object.assign({}, LOOK_HOUSECARL(0), { weapon: 'spear', x: 0, z: 0, yaw: -.22, fixArmR: -PI / 2 }));
   A.add(Object.assign({}, LOOK_PLAYER, { x: -.95, z: 3.5, yaw: PI + .2 }));
   [[4.2, -6.2, -1.2], [5.3, -6.6, -1.4], [4.6, -7.9, -.9], [5.9, -8.2, -1.2], [-4.6, -3.2, 1.3]].forEach(p => A.add(Object.assign(lookSaxon(), { x: p[0], z: p[1], yaw: p[2] })));
-  for (let i = 0; i < 3; i++) menu.marchers.push(A.add(Object.assign(lookSaxon(), { x: -13 - i * 1.6, z: -11.2 + (i % 2) * .5, yaw: -PI / 2 })));
+  for (let i = 0; i < 3; i++) winchester.marchers.push(A.add(Object.assign(lookSaxon(), { x: -13 - i * 1.6, z: -11.2 + (i % 2) * .5, yaw: -PI / 2 })));
 }
-function stepMenu(dt, time) {
-  for (const u of menu.army.units) { u.vx = 0; u.vz = 0; }
-  for (const m of menu.marchers) { m.x += 1.5 * dt; m.vx = 1.5; if (m.x > 13) m.x = -13; }
-  for (const u of menu.army.units) animate(u, dt, time);
-  menu.asker.pose.headY = Math.sin(time * .4) * .1;
-  if (menu.flame) { menu.flame.scale.y = 1 + Math.sin(time * 13) * .18 + Math.sin(time * 7.3) * .12; }
+function stepWinchester(dt, time) {
+  for (const u of winchester.army.units) { u.vx = 0; u.vz = 0; }
+  for (const m of winchester.marchers) { m.x += 1.5 * dt; m.vx = 1.5; if (m.x > 13) m.x = -13; }
+  for (const u of winchester.army.units) animate(u, dt, time);
+  winchester.asker.pose.headY = Math.sin(time * .4) * .1;
+  if (winchester.flame) { winchester.flame.scale.y = 1 + Math.sin(time * 13) * .18 + Math.sin(time * 7.3) * .12; }
   const sway = reduceMotion ? 0 : 1;
   camera.position.set(1.4 + Math.sin(time * .3) * .22 * sway, 1.95 + Math.sin(time * .23) * .05 * sway, 5.9);
   camera.lookAt(-.2, .95, 0);

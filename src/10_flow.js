@@ -1,14 +1,12 @@
 /* ================= flow ================= */
 let mode = 'select', scene = null, busy = false, paused = false, typeTimer = 0;
-const inCombat = () => mode !== 'select' && mode !== 'menu';      /* every other mode is a level being played */
-const QUESTION = 'Will you fight for Harold and save England?';
+const inCombat = () => !SCREENS[mode];      /* a mode that is not a screen is a level being played */
 function typeLine(text, done, into) {
   clearInterval(typeTimer); const el = into || $('line');
   if (reduceMotion) { el.textContent = text; if (done) done(); return; }
   const t0 = performance.now(); el.textContent = '';
   typeTimer = setInterval(() => { const i = Math.min(text.length, Math.ceil((performance.now() - t0) / 22)); el.textContent = text.slice(0, i); if (i >= text.length) { clearInterval(typeTimer); if (done) done(); } }, 22);
 }
-function setChoices(on) { $('btnYes').disabled = !on; $('btnNo').disabled = !on; }
 function fade(to, ms) { const f = $('fade'); f.style.transitionDuration = ms + 'ms'; void f.offsetWidth; f.style.opacity = to; return wait(ms + 30); }
 function lock() { if (touchMode || !canvas.requestPointerLock) return; try { const r = canvas.requestPointerLock(); if (r && r.catch) r.catch(() => {}); } catch (e) {} }
 function refreshTouchUi() { $('touch').hidden = !(touchMode && inCombat() && battle.phase === 'fight' && !battle.over); $('tBlock').textContent = (LEVELS[battle.level] || {}).blockLabel || 'Block'; }
@@ -36,6 +34,11 @@ function enterSelect() {
   carth.hpBg.count = 0; carth.hpFill.count = 0; carth.fxMesh.count = 0; carth.arrowMesh.count = 0; carth.markMesh.count = 0; carth.gateDoor.visible = true; setBeacon(null);
   camera.fov = 55; camera.updateProjectionMatrix();
 }
+defineScreen({ id: 'select', frame(dt, clock) {
+  const a = reduceMotion ? 0 : clock;
+  stepCarthFx(dt, clock);
+  camera.position.set(-36 + Math.sin(a * .11) * 7, 31, 186 + Math.cos(a * .09) * 9); camera.lookAt(8, 3, 300);
+} });
 async function toSelect() {
   if (busy && mode === 'select') return;
   busy = true; sfx.ui(); $('card').hidden = true; paused = false;
@@ -48,57 +51,11 @@ async function chooseLevel(which) {
   await lv.enter();
 }
 
-/* ---- Hastings ---- */
-function enterMenu(first) {
-  mode = 'menu'; scene = menu.scene; battle.phase = 'idle'; hideUi();
-  stage.setAttribute('data-level', 'hastings');
-  $('place').hidden = false; $('dialogue').hidden = false; $('btnLevels').hidden = false;
-  camera.fov = 50; camera.updateProjectionMatrix(); setChoices(true);
-  if (first) { clearInterval(typeTimer); $('line').textContent = QUESTION; } else typeLine(QUESTION);
-}
-async function toBattle() {
-  hideUi(); interlude('Hastings', '14 October 1066');
-  spawnArmies(); mode = 'battle'; scene = battle.scene; camera.fov = 55; camera.updateProjectionMatrix();
-  await wait(1700);
-  battle.phase = 'intro';
-  await fade(0, 1100);
-  $('interlude').hidden = true;
-  busy = false;
-}
-async function onYes() {
-  if (busy) return; busy = true; Snd.init(); sfx.ui(); lock(); setChoices(false);
-  await fade(1, 900); await toBattle();
-}
-async function onNo() {
-  if (busy) return; busy = true; Snd.init(); sfx.ui(); setChoices(false);
-  await new Promise(r => typeLine('Then may God defend England.', r));
-  await wait(1300); await fade(1, 900);
-  $('place').hidden = true; $('dialogue').hidden = true; $('btnLevels').hidden = true;
-  showCard('14 October 1066', 'England stands alone',
-    '<p>Without you, the shield wall broke at Hastings. Harold fell, and William of Normandy was crowned King of England on Christmas Day.</p>',
-    [['Return to Winchester', 'yes', backToMenu]], true);
-}
-async function backToMenu() {
-  sfx.ui(); $('card').hidden = true;
-  if (mode === 'battle') { busy = true; await fade(1, 700); }
-  enterMenu(); await fade(0, 900); busy = false;
-}
-async function fightAgain() {
-  if (busy) return; busy = true; sfx.ui(); lock(); $('card').hidden = true;
-  await fade(1, 700); await toBattle();
-}
-
+/* ---- the end of a level: the level shows its own card ---- */
 function showEndCard() {
-  const B = battle, k = B.player.kills;
   Save.flush();
   $('touch').hidden = true; $('btnPause').hidden = true; $('hint').style.opacity = 0;
-  const lv = LEVELS[B.level];
-  if (lv && lv.endCard) { lv.endCard(); return; }
-  const tally = '<p class="titulus">Foes you felled: ' + k + '</p>';
-  const btns = [['Fight again', 'yes', fightAgain], ['Return to Winchester', 'no', backToMenu]];
-  if (B.result === 'victory') showCard('14 October 1066', 'Victory', '<p>William has fallen and the Normans break and run. Harold keeps his crown. England is saved, and history is changed.</p>' + tally, btns);
-  else if (B.result === 'harold') showCard('Hic Harold rex interfectus est', 'Harold has fallen', '<p>The shield wall is broken and the King lies dead. William will be crowned on Christmas Day.</p>' + tally, btns);
-  else showCard('14 October 1066', 'You have fallen', '<p>You fought bravely on the field of Hastings, but the battle goes on without you.</p>' + tally, btns);
+  LEVELS[battle.level].endCard();
 }
 function setPaused(v) {
   if (packOpen) { closePack(); return; }

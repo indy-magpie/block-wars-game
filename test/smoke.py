@@ -15,7 +15,7 @@ async def main():
     lid = sys.argv[1] if len(sys.argv) > 1 else 'hastings'
     async with Game() as g:
         if lid == 'hastings':      # Hastings starts in Winchester: answer yes
-            await g.pg.click('#eraHastings'); await g.until(lambda s: s['mode'] == 'menu' and not s['busy']); await g.pg.click('#btnYes')
+            await g.pg.click('#eraHastings'); await g.until(lambda s: s['mode'] == 'winchester' and not s['busy']); await g.pg.click('#btnYes')
             await g.until(lambda s: s['phase'] == 'intro' and not s['busy']); await g.js('window.__hastings.skip()'); await g.pg.wait_for_timeout(600); await g.shot('smoke_hastings'); print(await g.st())
         else: await smoke(g, lid)
         print('errors:', g.errs)

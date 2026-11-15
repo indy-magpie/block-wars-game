@@ -62,10 +62,10 @@ you could not check.
 
 ```
 src/00–04   boot, helpers, renderer, blocky people, scenery pieces
-src/05, 06, 08   Hastings (the oldest level; some of its screens are still in 10_flow.js)
+src/05, 06, 08   Hastings, the oldest level, with Winchester as a screen of its own (06 also holds some engine parts)
 src/07_engine.js     fighting, AI, the player, collision, camera
 src/07_inventory.js  coins, bread, loot, the pack, saving
-src/07_levels.js     the level registry and the kit for new levels
+src/07_levels.js     the level and screen registries, and the kit for new levels
 src/07_talk.js       conversations with choices; things to press E on
 src/levels/<id>/     one folder per level
 src/10–12   screens and cards, input, the main loop

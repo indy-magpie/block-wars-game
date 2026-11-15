@@ -2,9 +2,17 @@
 /* A level lives in its own folder, src/levels/<id>/, and tells the game about itself with one call to defineLevel().
    Nothing outside that folder needs to change to add a level. docs/LEVELS.md explains every field. */
 const LEVELS = {};
+/* Screens are the places that are not a level being played: choosing a battle, Winchester before Hastings, and later the
+   main menu. While one is showing, `mode` is its id. A screen: { id, frame(dt, clock), key(e), level, resume(data) }.
+   frame steps and places the camera each frame; key gets key presses; level is the level whose kit the Pack shows. */
+const SCREENS = {};
 function defineLevel(def) {
-  if (LEVELS[def.id]) throw new Error('two levels are both called ' + def.id);
+  if (LEVELS[def.id] || SCREENS[def.id]) throw new Error('two levels or screens are both called ' + def.id);
   def.frame = def.frame || {}; def.built = false; LEVELS[def.id] = def; return def;
+}
+function defineScreen(def) {
+  if (LEVELS[def.id] || SCREENS[def.id]) throw new Error('two levels or screens are both called ' + def.id);
+  SCREENS[def.id] = def; return def;
 }
 /* a level's scene is built the first time it is chosen, so the page does not pay for levels nobody plays */
 function ensureBuilt(lv) {
