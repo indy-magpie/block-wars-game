@@ -26,27 +26,31 @@ and the number keys pick an answer.
 
 ```
 src/page.html            markup and CSS; the script is injected at /*SCRIPT*/
-src/NN_name.js           the game, in load order; all parts share one function scope
-build.py                 joins src/ into index.html
-index.html               the built page (committed, so it can be opened or published as is)
+src/NN_name.js           the engine and screens, in load order; every part shares one scope
+src/levels/<id>/         one folder per level; a level registers itself with defineLevel()
+build.py                 joins src/ into index.html, and stops if two files use the same name
+docs/LEVELS.md           how to write a level
+docs/template/level.js   a complete small level to copy
+docs/ROADMAP.md          eras that could come next
+docs/briefs/             one design brief per level in progress
+CLAUDE.md                rules for sessions working here in parallel
 test/                    headless play-throughs and balance simulations
 ```
 
-Parts, in order: boot, helpers, renderer, blocky people (instanced box figures),
-scenery pieces, Winchester, Hastings world, fighting engine, inventory, Hastings rules,
-Carthage, Sogdiana (world and people), Sogdiana play (path-finding, sight, alarms, talk,
-rules), flow (screens and cards), events (input), main loop.
+Core parts, in order: boot, helpers, renderer, blocky people (instanced box figures), scenery pieces,
+Winchester, Hastings world, fighting engine, inventory, the level registry and kit, talk-and-use, Hastings
+rules; then every level folder; then flow (screens and cards), events (input) and the main loop.
 
-Each level gives the engine a `rules` object. Besides the hooks every level has (`clamp`,
-`wake`, `after`, `end`, `hud`), a level may add `steer` (how a chasing soldier gets round
-walls), `strike` (a level's own rule for the player's blow) and `duck` (where the player is
-made to crouch).
+Each level gives the engine a `rules` object and describes itself to the registry. A level's scene is built
+the first time it is chosen. `docs/LEVELS.md` has the details.
 
 ## Build
 
 ```
 python3 build.py
 ```
+
+`index.html` is a build product and is not committed.
 
 ## Tests
 
@@ -57,6 +61,8 @@ page from `node_modules`, so no network is needed).
 ```
 npm install
 pip install playwright
+python3 test/smoke.py <id>  # does a level start cleanly? works for any level
+python3 test/template.py   # the level kit, proved with docs/template/level.js
 python3 test/cplay.py      # Carthage and Hastings end to end
 python3 test/tweaks2.py    # jump, loot, bread, pack, saving
 python3 test/hsim.py       # Hastings balance, simulated players
@@ -77,11 +83,11 @@ and roughly how hard each level is, not how it feels to play.
 ## Tuning
 
 - Hastings: `STAT` and `TUNE` in `src/06_Hastings.js`.
-- Carthage: `C_TIER`, `C_TUNE` and `STAGES` in `src/09_carthage.js`.
-- Sogdiana: `S_TUNE` in `src/09_sogdiana.js` (how far guards see, how fast they grow
+- Carthage: `C_TIER`, `C_TUNE` and `STAGES` in `src/levels/carthage/carthage.js`.
+- Sogdiana: `S_TUNE` in `src/levels/sogdiana/1_world.js` (how far guards see, how fast they grow
   suspicious, how weak the knife is, what things cost). Guards, patrols and people are
   placed in `sogPopulate`; conversations are the `talk…` functions in
-  `src/09_sogdiana_play.js`.
+  `src/levels/sogdiana/2_play.js`.
 - Items and loot: `ITEMS` and `dropLoot` in `src/07_inventory.js`.
 
 In the browser console, `window.__hastings` exposes the live state, the tuning tables
